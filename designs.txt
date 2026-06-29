@@ -1,0 +1,539 @@
+Atomicity
+
+Welcome Back
+Enter your university credentials to continue
+student id
+
+Your Student ID...
+Password
+
+••••••••
+Forgot password?
+
+Sign In to Dashboard
+
+Or continue with
+
+Don't have an account? Create one
+
+© 2026 CourseReg Inc. All Rights Reserved. Built for higher education excellence.
+
+Peter Baker
+
+C026-01-0596/2026
+
+Welcome back, baker
+
+Student Dashboard
+
+Drop Course
+
+Computer Science
+Dashboard
+
+Browse Courses
+
+Degree Progress
+
+J
+
+You have completed 75% of your Bachelor of Science
+
+requirements. Keep it up!
+
+une 2026
+
+75%
+
+Schedule
+
+Earned
+Grades
+
+Mo
+
+T
+
+u
+
+W
+
+Th
+
+F
+
+r
+
+S
+
+3
+
+1
+
+1
+
+2
+
+3
+
+4
+
+5
+
+6
+
+7
+
+8
+
+9
+
+10
+
+11
+
+12
+
+13
+
+14
+
+15
+
+16
+
+17
+
+18
+
+19
+
+20
+
+S
+
+Current
+
+90 / 120 15 Credits
+
+u
+
+e
+
+a
+
+Settings
+
+Registered Courses
+
+SEM 1
+
+CCS 3101: Artificial Intelligence
+
+est: CCS 3101 (11:00 AM)
+
+T
+
+11:00 AM - 1:00 PM
+Resource Centre, 18
+
+Mr. Kaburu Morris • Mon, Thu
+
+ecent Notifications
+
+R
+
+CCS 3103: Distributed Systems
+
+01:00 PM - 02:30 PM
+
+KENET Web Conference
+
+Dr. Moso Juliet • Tue, Wed
+
+aitlist Update: You
+
+W
+
+moved up 2 spots in ML.
+
+urs ago
+
+2 ho
+
+egistration Success:
+
+
+R
+
+CCS 3106: Software Engineering
+
+08:00 AM - 10:00 AM
+Resource Centre, 18
+
+Mr. Kaburu Morris • Wed, Fri
+
+CCS 3106 Software
+Engineering confirmed.
+
+esterday
+
+Y
+
+Payment Due: Semester fees
+
+must be cleared by July 15.
+2 days ago
+
+aitlist Position
+
+W
+
+Machine Learning
+i h probability of enrollment
+
+H g
+
+ogout
+
+L
+
+#3
+
+Waitlist
+
+Position
+
+Compiler Construction
+M
+
+oderate probability of enrollment
+
+1
+
+# 4
+V i e w a l l n o t i f i c at i o n s
+
+Atomicity
+
+Browse
+
+Departments
+All Design
+
+Computer Science
+
+My Courses
+
+Schedule
+
+Search catalog...
+
+Settings
+
+Computer Science
+
+Discover courses that inspire you to build modern working systems
+
+Information Technology
+Business Information Technology
+
+CCS 2101
+
+CCS -4 20 5
+
+CCS 2106
+
+CLOSED
+
+Semester
+Semester 1
+Semester 2
+
+Database Systems
+Mr. Kagiri Michael
+Enrollment Status
+26 of 40 seats filled
+
+Catalog updated: 12m ago
+
+System Analysis & Design
+
+Current Credits: 12.0
+
+Prof. Yoporeka Somet
+
+Mr. Kagiri Michael
+Available
+View Details
+
+Enrollment Status
+23 of 25 seats filled
+
+Interactive Media History
+
+Almost Full
+View Details
+
+Enrollment Status
+
+Waitlist: 12 students
+
+Full
+
+Join Waitlist
+
+© 2026 EduFlow University System
+
+Atomicity
+
+Schedule
+
+Browse
+
+My Courses
+
+Settings
+
+Search courses...
+
+Current Semester
+
+Weekly Schedule
+
+Calendar
+
+June 22 — June 26, 2026
+Mon
+
+Tue
+
+22
+
+Wed
+
+23
+
+Thu
+
+24
+
+Fri
+
+25
+
+08:00 AM
+
+09:00 AM
+
+Add Course
+
+List
+
+26
+SEM-A
+
+Student Seminar
+
+CS101
+
+CS101
+
+Intro to CS
+
+Intro to CS
+
+Hall A • Dr. Kinyita
+
+Live Now
+
+10:00 AM
+
+DE44
+
+DE44
+
+UI Design
+
+UI Design
+
+Lab 4 • P. Kimanga
+11:00 AM
+
+12:00 PM
+
+MA202
+
+MA202
+
+Calculus II
+
+Calculus II
+
+01:00 PM
+
+HS10
+
+World Hist.
+
+02:00 PM
+
+03:00 PM
+
+04:00 PM
+
+Upcoming Tests
+Software Eng. CAT 1
+July 5, 2026
+
+CS Quiz #3
+July 2, 2026
+
+©
+
+2026 EduFlow Academic Systems
+
+Pending Tasks
+7
+
+Days Left
+
+ubmit UI Design Prototype
+
+S
+
+ead Systems Programming Chapter 4
+
+Study Session?
+u have a 3-hour gap on Friday. Perfect for a
+
+library session!
+Yo
+
+R
+
+4 Days Left
+
+Privacy Policy
+
+Find a Room
+
+System Online
+
+Help Center
+
+Atomicity Admin
+
+Analytics Overview
+
+Alex Kirimi
+
+Search data...
+
+Admin
+
+Dashboard
++12.4%
+
+Analytics
+Students
+Courses
+
+Total Students
+
++5.2%
+
+Active Courses
+
+24,512
+
++18.7%
+
+New Registrations
+
+1,284
+
+1,204
+
+Reports
+
+Enrollment Trends
+
+Monthly
+
+Student growth over the last 6 months
+
+Weekly
+
+Department Distribution
+
+88%
+
+OCCUPANCY
+
+JAN
+
+FEB
+
+MAR
+
+APR
+
+Recent Course Activities
+New student enrolled in "Advanced React Patterns"
+2 minutes ago • ID: #45920
+
+Course "Data Structures" content updated
+1 hour ago • By Admin
+
+Generate Report
+
+Payment failed for Student #22104
+4 hours ago • Retry pending
+
+MAY
+
+JUN
+
+Computer Science
+
+45%
+
+Business Admin
+
+30%
+
+Engineering
+
+15%
+
+Others
+
+10%
+
+View All Activities
+
+Atomicity
+
+Course Registration
+Enter your credentials to enroll in a course
+student name
+
+Your full name...
+Email Address
+
+name@university.edu
+course name
+
+Select a course
+KCSE grade
+
+Mean Grade...
+
+Complete Registration
+
+Already registered? View my courses
+
+© 2026 CourseReg Inc. All Rights Reserved. Built for higher education excellence.
+
+

@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Atomicity</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="app">
+    <section class="auth-card" id="login-view" aria-label="Login">
+      <header class="brand">
+        <div class="brand-title">Atomicity</div>
+      </header>
+
+      <h1 class="headline">Welcome Back</h1>
+      <p class="subhead">Enter your university credentials to continue</p>
+
+      <form class="form" id="login-form" autocomplete="on">
+        <label class="field">
+          <span class="label">student id</span>
+          <input class="input" name="studentId" type="text" placeholder="Your Student ID..." required />
+        </label>
+
+        <label class="field">
+          <span class="label">Password</span>
+          <input class="input" name="password" type="password" placeholder="••••••••" required />
+        </label>
+
+        <div class="row row-between">
+          <a class="link" href="#" id="forgot-link">Forgot password?</a>
+        </div>
+
+        <button class="btn" type="submit">Sign In to Dashboard</button>
+
+        <div class="divider">
+          <span class="divider-text">Or continue with</span>
+        </div>
+
+        <div class="alt">
+          <a class="link" href="#" id="create-link">Don't have an account? Create one</a>
+        </div>
+      </form>
+
+      <footer class="footer">
+        © 2026 CourseReg Inc. All Rights Reserved. Built for higher education excellence.
+      </footer>
+    </section>
+
+    <section class="auth-card" id="register-view" aria-label="Registration" hidden>
+      <header class="brand">
+        <div class="brand-title">Atomicity</div>
+      </header>
+
+      <h1 class="headline">Course Registration</h1>
+      <p class="subhead">Enter your credentials to enroll in a course</p>
+
+      <form class="form" id="register-form" autocomplete="on">
+        <label class="field">
+          <span class="label">student name</span>
+          <input class="input" name="studentName" type="text" placeholder="Your full name..." required />
+        </label>
+
+        <label class="field">
+          <span class="label">Email Address</span>
+          <input class="input" name="email" type="email" placeholder="name@university.edu" required />
+        </label>
+
+        <label class="field">
+          <span class="label">course name</span>
+          <select class="input" name="courseName" required>
+            <option value="" disabled selected>Select a course</option>
+            <option>Computer Science</option>
+            <option>Data Structures</option>
+            <option>Advanced React Patterns</option>
+            <option>Business Administration</option>
+            <option>Engineering Fundamentals</option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span class="label">KCSE grade</span>
+          <input class="input" name="kcse" type="text" placeholder="Mean Grade..." required />
+        </label>
+
+        <button class="btn" type="submit">Complete Registration</button>
+
+        <div class="alt">
+          <a class="link" href="#" id="view-courses-link">Already registered? View my courses</a>
+        </div>
+      </form>
+
+      <footer class="footer">
+        © 2026 CourseReg Inc. All Rights Reserved. Built for higher education excellence.
+      </footer>
+    </section>
+
+    <section class="auth-card" id="courses-view" aria-label="Registered courses" hidden>
+      <header class="brand">
+        <div class="brand-title">Atomicity</div>
+      </header>
+
+      <h1 class="headline">Your Courses</h1>
+      <p class="subhead" id="courses-subhead">Courses you have registered for</p>
+
+      <div class="courses" id="courses-list" role="list"></div>
+
+      <div class="actions">
+        <button class="btn btn-ghost" type="button" id="back-to-auth">Back</button>
+      </div>
+
+      <footer class="footer">
+        © 2026 CourseReg Inc. All Rights Reserved. Built for higher education excellence.
+      </footer>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
+

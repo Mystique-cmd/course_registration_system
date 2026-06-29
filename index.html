@@ -9,6 +9,8 @@
 <body>
   <main class="app">
     <section class="auth-card" id="login-view" aria-label="Login">
+
+
       <header class="brand">
         <div class="brand-title">Atomicity</div>
       </header>
@@ -113,9 +115,87 @@
         © 2026 CourseReg Inc. All Rights Reserved. Built for higher education excellence.
       </footer>
     </section>
+
+    <section class="dashboard" id="dashboard-view" aria-label="Student Dashboard" hidden>
+      <aside class="sidebar" aria-label="Sidebar navigation">
+        <div class="brand-title sidebar-brand">Atomicity</div>
+
+        <nav class="nav" aria-label="Primary">
+          <button class="nav-item is-active" type="button" data-nav="dashboard">Dashboard</button>
+          <button class="nav-item" type="button" data-nav="browse">Browse Courses</button>
+          <button class="nav-item" type="button" data-nav="schedule">Schedule</button>
+          <button class="nav-item" type="button" data-nav="grades">Grades</button>
+          <button class="nav-item" type="button" data-nav="settings">Settings</button>
+        </nav>
+
+        <div class="sidebar-actions">
+          <button class="btn btn-danger" type="button" id="drop-course-btn">Drop Course</button>
+          <button class="btn btn-ghost" type="button" id="logout-btn">Logout</button>
+        </div>
+      </aside>
+
+      <div class="dashboard-main">
+        <header class="dash-header">
+          <div>
+            <div class="dash-greeting" id="dash-greeting">Hello, Student</div>
+            <div class="dash-sub" id="dash-program">Program</div>
+          </div>
+        </header>
+
+        <div class="grid">
+          <section class="card" aria-label="Degree progress">
+            <h2 class="card-title">Degree Progress</h2>
+            <div class="progress">
+              <div class="progress-meta"><span id="progress-earned">0</span> / <span id="progress-required">0</span> credits earned</div>
+              <div class="progress-bar" role="progressbar" aria-valuemin="0" aria-valuenow="0" aria-valuemax="0">
+                <div class="progress-fill" id="progress-fill"></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="card" aria-label="Waitlist positions">
+            <h2 class="card-title">Waitlist</h2>
+            <div class="list" id="waitlist-list"></div>
+            <div class="muted small" id="waitlist-empty">No waitlist entries.</div>
+          </section>
+
+          <section class="card" aria-label="Registered courses">
+            <h2 class="card-title">Registered Courses</h2>
+            <div class="table" role="table" aria-label="Registered courses table">
+              <div class="thead" role="row">
+                <div role="columnheader">Course</div>
+                <div role="columnheader">Instructor</div>
+                <div role="columnheader">Schedule</div>
+                <div role="columnheader">Location</div>
+              </div>
+              <div class="tbody" id="courses-dashboard-list" role="rowgroup"></div>
+            </div>
+          </section>
+
+          <section class="card" aria-label="Calendar">
+            <h2 class="card-title">Calendar</h2>
+            <div class="calendar" id="calendar"></div>
+            <div class="muted small">Highlighted dates are upcoming tests.</div>
+          </section>
+
+          <section class="card" aria-label="Notifications">
+            <h2 class="card-title">Notifications</h2>
+            <div class="list" id="notifications-list"></div>
+            <div class="muted small" id="notifications-empty">No new notifications.</div>
+          </section>
+
+          <section class="card" aria-label="Dashboard content">
+            <h2 class="card-title" id="dash-secondary-title">Dashboard</h2>
+            <div class="muted" id="dash-secondary-body">Select an item from the sidebar.</div>
+          </section>
+        </div>
+      </div>
+    </section>
+
   </main>
 
   <script src="app.js"></script>
 </body>
 </html>
+
 

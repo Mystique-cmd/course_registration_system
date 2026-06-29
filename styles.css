@@ -146,3 +146,129 @@ body{
 .error{display:none; color:rgba(251,113,133,.95); font-size:13px; margin-top:-6px;}
 .show{display:block}
 
+/* Student Dashboard */
+.dashboard{width:100%;}
+
+.dashboard{
+  display:flex;
+  gap:18px;
+}
+
+.sidebar{
+  width:220px;
+  flex:0 0 220px;
+  border-radius:18px;
+  border:1px solid var(--border);
+  background: rgba(18,20,42,.55);
+  box-shadow: 0 10px 40px rgba(0,0,0,.25);
+  padding:16px;
+  backdrop-filter: blur(10px);
+}
+
+.sidebar-brand{font-size:18px; margin-bottom:12px;}
+
+.nav{display:flex; flex-direction:column; gap:8px; margin-top:8px;}
+.nav-item{
+  width:100%;
+  text-align:left;
+  border:none;
+  border-radius:14px;
+  padding:10px 12px;
+  background: rgba(255,255,255,.02);
+  color: var(--text);
+  cursor:pointer;
+  font-weight:700;
+  border:1px solid rgba(190,160,255,.10);
+}
+.nav-item:hover{border-color: rgba(139,92,246,.45)}
+.nav-item.is-active{
+  background: linear-gradient(90deg, rgba(139,92,246,.25), rgba(167,139,250,.08));
+  border-color: rgba(139,92,246,.65);
+  color: var(--text);
+}
+
+.sidebar-actions{margin-top:14px; display:flex; flex-direction:column; gap:10px;}
+
+.dashboard-main{flex:1; min-width:0;}
+
+.dash-header{display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:14px;}
+.dash-greeting{font-size:24px; font-weight:900;}
+.dash-sub{color:var(--muted); font-size:14px; margin-top:2px;}
+
+.grid{display:grid; grid-template-columns: 1fr 1fr; gap:14px;}
+
+.card{
+  border:1px solid var(--border);
+  background: rgba(255,255,255,.02);
+  border-radius:18px;
+  padding:14px;
+  overflow:hidden;
+}
+.card-title{font-size:14px; margin:0 0 10px; color: rgba(233,233,255,.95); font-weight:900;}
+
+.progress-meta{color:var(--muted); font-size:13px; margin-bottom:10px;}
+.progress-bar{
+  width:100%;
+  height:12px;
+  background: rgba(255,255,255,.04);
+  border:1px solid rgba(190,160,255,.16);
+  border-radius:999px;
+  overflow:hidden;
+}
+.progress-fill{
+  height:100%;
+  width:0%;
+  background: linear-gradient(90deg, var(--purple), var(--purple2));
+}
+
+.list{display:flex; flex-direction:column; gap:10px;}
+.list-item{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 10px; border-radius:14px; border:1px solid rgba(190,160,255,.12); background: rgba(255,255,255,.02)}
+.list-item-title{font-weight:900; font-size:13px;}
+.list-item-sub{color:var(--muted); font-size:12px; margin-top:2px;}
+
+.badge{
+  font-weight:900;
+  font-size:12px;
+  padding:6px 10px;
+  border-radius:999px;
+  border:1px solid rgba(190,160,255,.18);
+  background: rgba(0,0,0,.08);
+}
+.badge-good{color: rgba(134,239,172,.95); border-color: rgba(134,239,172,.3)}
+.badge-mid{color: rgba(253,224,71,.95); border-color: rgba(253,224,71,.3)}
+.badge-low{color: rgba(251,113,133,.95); border-color: rgba(251,113,133,.3)}
+
+.table{width:100%;}
+.thead{display:flex; justify-content:space-between; gap:10px; color:var(--muted); font-size:12px; padding:0 4px 10px;}
+.tbody{display:flex; flex-direction:column; gap:10px;}
+.trow{display:flex; justify-content:space-between; gap:10px; padding:10px; border-radius:14px; border:1px solid rgba(190,160,255,.12); background: rgba(255,255,255,.02)}
+.td{color:var(--muted); font-size:12px; flex:1;}
+.td-strong{color:var(--text); font-weight:900;}
+
+.calendar{margin-top:6px;}
+.cal-grid{display:grid; grid-template-columns: repeat(7, 1fr); gap:6px;}
+.cal-dow{font-size:11px; color:var(--muted); text-align:center; padding:2px 0;}
+.cal-cell{
+  border:1px solid rgba(190,160,255,.14);
+  background: rgba(255,255,255,.02);
+  color:var(--text);
+  border-radius:12px;
+  padding:10px 0;
+  cursor:default;
+  font-weight:800;
+}
+.cal-empty{border:none; background: transparent; padding:10px 0;}
+.cal-test{border-color: rgba(139,92,246,.65); box-shadow: 0 0 0 3px rgba(139,92,246,.12) inset;}
+.cal-today{border-color: rgba(167,139,250,.95);}
+
+.muted.small{color:var(--muted); font-size:12px; margin-top:10px;}
+.muted{color:var(--muted)}
+
+@media (max-width: 900px){
+  body{align-items:flex-start;}
+  .dashboard{flex-direction:column;}
+  .sidebar{width:100%; flex:0 0 auto;}
+  .grid{grid-template-columns: 1fr;}
+}
+
+

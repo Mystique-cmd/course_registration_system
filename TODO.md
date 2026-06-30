@@ -16,3 +16,11 @@
   - [x] Update styles.css: styling for weekly grid + panels + course blocks
   - [ ] Manual test: login -> dashboard -> verify weekly schedule blocks and countdown
 
+- [ ] Implement **Admin Analytics Dashboard**
+  - [x] Create `admin_dashboard.html` with admin sidebar + analytics UI skeleton
+
+  - [ ] Update `styles.css` with chart/activity/feed styling + admin-specific layout tweaks
+  - [ ] Update `app.js` to support `data-page="admin_analytics"` and implement `renderAdminDashboard()` + chart rendering + report generation
+  - [ ] Manual test: open `admin_dashboard.html` after adding users/registrations, verify UI behavior + report download
+
+

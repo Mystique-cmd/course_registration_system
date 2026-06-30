@@ -8,6 +8,14 @@ function getPage() {
   return main?.dataset?.page || 'index';
 }
 
+function getAdminMode() {
+  // Lightweight demo: treat session studentId === 'admin' as admin.
+  // Admin page is still usable directly, but this gate controls data binding.
+  const sess = getSession();
+  return sess?.studentId === 'admin';
+}
+
+
 function getUsers() {
 
   try {
@@ -130,6 +138,406 @@ function fmtPct(p) {
   if (Number.isNaN(n)) return '—';
   return `${Math.round(n * 100)}%`;
 }
+
+function mulberry32(seed) {
+  let t = seed >>> 0;
+  return function () {
+    t += 0x6D2B79F5;
+    let x = Math.imul(t ^ (t >>> 15), 1 | t);
+    x ^= x + Math.imul(x ^ (x >>> 7), 61 | x);
+    return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function hashStringToSeed(s) {
+  const str = String(s || '');
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+function getDepartmentForCourseName(courseName) {
+  const catalog = getCourseCatalogData();
+  const item = catalog.find((c) => c.title === courseName || c.courseCode === courseName || c.department === courseName || c.title === courseName || c.courseName === courseName);
+  if (item) return item.department;
+
+  // Fallback heuristics
+  if (/react|computer|data structures|programming|program/i.test(courseName)) return 'Computer Science';
+  if (/it\b|fundamentals/i.test(courseName)) return 'IT';
+  if (/business/i.test(courseName)) return 'Business IT';
+  if (/eng|engineering/i.test(courseName)) return 'Engineering';
+  return 'Other';
+}
+
+function buildAdminAnalyticsData() {
+  const users = getUsers();
+
+  const studentCount = users.length;
+  const allRegistrations = [];
+  for (const u of users) {
+    const regs = u.registrations || [];
+    for (const r of regs) {
+      allRegistrations.push({ studentId: u.studentId, courseName: r.courseName, kcseGrade: r.kcseGrade });
+    }
+  }
+
+  const uniqueCourses = new Set(allRegistrations.map((r) => r.courseName));
+  const activeCourses = uniqueCourses.size;
+
+  // New registrations: approximate by using the current array size and comparing to a synthetic previous period.
+  const seed = hashStringToSeed(JSON.stringify({ studentCount, activeCourses, totalRegs: allRegistrations.length }));
+  const rnd = mulberry32(seed);
+
+  const totalRegs = allRegistrations.length;
+  const weeklyNow = Math.max(0, Math.floor(totalRegs / 5 + rnd() * 3));
+  const weeklyPrev = Math.max(0, Math.floor(weeklyNow * (0.75 + rnd() * 0.5)));
+  const pctChange = weeklyPrev === 0 ? (weeklyNow > 0 ? 1 : 0) : (weeklyNow - weeklyPrev) / weeklyPrev;
+
+  const newRegistrations = weeklyNow;
+
+  // Department distribution
+  const deptCounts = new Map();
+  for (const r of allRegistrations) {
+    const dept = getDepartmentForCourseName(r.courseName);
+    deptCounts.set(dept, (deptCounts.get(dept) || 0) + 1);
+  }
+  const deptArr = Array.from(deptCounts.entries())
+    .map(([dept, count]) => ({ dept, count }))
+    .sort((a, b) => b.count - a.count);
+
+  const totalDept = deptArr.reduce((sum, d) => sum + d.count, 0) || 1;
+  const deptPctArr = deptArr.map((d) => ({ dept: d.dept, pct: d.count / totalDept }));
+
+  const colors = [
+    'rgba(139,92,246,.95)',
+    'rgba(167,139,250,.95)',
+    'rgba(134,239,172,.95)',
+    'rgba(45,212,191,.95)',
+    'rgba(253,224,71,.95)',
+    'rgba(251,113,133,.95)',
+    'rgba(96,165,250,.95)',
+  ];
+
+  // Trends data (demo but deterministic)
+  const makeSeries = (count) => {
+    const base = Math.max(1, Math.round(newRegistrations + activeCourses * 0.8));
+    const series = [];
+    for (let i = 0; i < count; i++) {
+      const wave = Math.sin((i / Math.max(1, count - 1)) * Math.PI * 1.8);
+      const noise = (rnd() - 0.5) * 0.4;
+      const v = Math.max(0, Math.round(base * (0.7 + i / count * 0.5 + wave * 0.18 + noise)));
+      series.push(v);
+    }
+    return series;
+  };
+
+  const weeklySeries = makeSeries(7);
+  const monthlySeries = makeSeries(12);
+
+  // Recent activities
+  const now = Date.now();
+  const activityKinds = ['enrollment', 'update', 'payment'];
+  const coursesSample = Array.from(uniqueCourses);
+
+  const activitySeed = hashStringToSeed(`act-${seed}-${coursesSample.join('|')}`);
+  const rndAct = mulberry32(activitySeed);
+
+  const activities = [];
+  for (let i = 0; i < 8; i++) {
+    const kind = activityKinds[Math.floor(rndAct() * activityKinds.length)];
+    const courseName = coursesSample.length ? coursesSample[Math.floor(rndAct() * coursesSample.length)] : 'Course';
+    const agoDays = Math.floor(rndAct() * 10);
+    const when = new Date(now - agoDays * 86400000 - Math.floor(rndAct() * 86400000 * 0.6));
+    activities.push({
+      kind,
+      courseName,
+      when: when.toISOString(),
+      detail:
+        kind === 'enrollment'
+          ? `New enrollment recorded for ${courseName}.`
+          : kind === 'update'
+            ? `Course information updated for ${courseName}.`
+            : `Payment received for ${courseName}.`,
+    });
+  }
+
+  return {
+    studentCount,
+    activeCourses,
+    newRegistrations,
+    pctChange,
+    deptPctArr,
+    deptColors: colors,
+    weeklySeries,
+    monthlySeries,
+    activities,
+  };
+}
+
+function collectAdminAnalyticsPayload() {
+  const data = buildAdminAnalyticsData();
+  return {
+    generatedAt: new Date().toISOString(),
+    ...data,
+  };
+}
+
+function generateDownloadFile(payload, filename) {
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function drawLineChart(ctx, values, labels, color) {
+  const w = ctx.canvas.width;
+  const h = ctx.canvas.height;
+
+  ctx.clearRect(0, 0, w, h);
+
+  const padL = 34;
+  const padR = 10;
+  const padT = 12;
+  const padB = 28;
+
+  const plotW = w - padL - padR;
+  const plotH = h - padT - padB;
+
+  const maxV = Math.max(...values, 1);
+  const minV = Math.min(...values, 0);
+
+  const xFor = (i) => padL + (plotW * (values.length === 1 ? 0 : i / (values.length - 1)));
+  const yFor = (v) => {
+    const t = (v - minV) / Math.max(1e-9, (maxV - minV));
+    return padT + plotH * (1 - t);
+  };
+
+  // grid
+  ctx.strokeStyle = 'rgba(190,160,255,.18)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = padT + (plotH * i) / 4;
+    ctx.beginPath();
+    ctx.moveTo(padL, y);
+    ctx.lineTo(w - padR, y);
+    ctx.stroke();
+  }
+
+  // axes
+  ctx.strokeStyle = 'rgba(190,160,255,.35)';
+  ctx.beginPath();
+  ctx.moveTo(padL, padT);
+  ctx.lineTo(padL, h - padB);
+  ctx.lineTo(w - padR, h - padB);
+  ctx.stroke();
+
+  // line
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  values.forEach((v, i) => {
+    const x = xFor(i);
+    const y = yFor(v);
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+
+  // points
+  ctx.fillStyle = color;
+  values.forEach((v, i) => {
+    const x = xFor(i);
+    const y = yFor(v);
+    ctx.beginPath();
+    ctx.arc(x, y, 3.5, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  // labels (sparse)
+  ctx.fillStyle = 'rgba(169,169,214,.95)';
+  ctx.font = '700 11px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial';
+  const step = values.length > 10 ? Math.ceil(values.length / 6) : 1;
+  for (let i = 0; i < values.length; i += step) {
+    const x = xFor(i);
+    const label = labels[i] ?? '';
+    ctx.fillText(label, x - 10, h - 10);
+  }
+}
+
+function drawDonutChart(ctx, pctArr, colors) {
+  const w = ctx.canvas.width;
+  const h = ctx.canvas.height;
+  ctx.clearRect(0, 0, w, h);
+
+  const cx = w / 2;
+  const cy = h / 2;
+  const r = Math.min(w, h) * 0.42;
+  const inner = r * 0.62;
+
+  let start = -Math.PI / 2;
+  const total = pctArr.reduce((s, d) => s + d.pct, 0) || 1;
+
+  pctArr.forEach((d, idx) => {
+    const frac = d.pct / total;
+    const end = start + frac * Math.PI * 2;
+    const color = colors[idx % colors.length];
+
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, r, start, end);
+    ctx.closePath();
+    ctx.fillStyle = color;
+    ctx.fill();
+
+    // cut inner
+    ctx.save();
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.beginPath();
+    ctx.arc(cx, cy, inner, start, end);
+    ctx.lineTo(cx, cy);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+
+    start = end;
+  });
+
+  // center label
+  ctx.fillStyle = 'rgba(233,233,255,.95)';
+  ctx.font = '900 14px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText('100%', cx, cy + 5);
+  ctx.textAlign = 'start';
+}
+
+function renderAdminTrendsChart(mode) {
+  const data = window.__adminAnalyticsData || buildAdminAnalyticsData();
+  const canvas = $('#trend-chart');
+  if (!canvas) return;
+
+  // set internal resolution to avoid blurry charts
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = Math.floor((rect.width || 560) * dpr);
+  canvas.height = Math.floor((rect.height || 220) * dpr);
+
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  const color = 'rgba(139,92,246,.95)';
+
+  if (mode === 'monthly') {
+    const values = data.monthlySeries;
+    const labels = values.map((_, i) => `M${i + 1}`);
+    drawLineChart(ctx, values, labels, color);
+  } else {
+    const values = data.weeklySeries;
+    const labels = values.map((_, i) => ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][i] || `D${i + 1}`);
+    drawLineChart(ctx, values, labels, color);
+  }
+
+  const legend = $('#trend-legend');
+  if (legend) {
+    legend.textContent = mode === 'monthly' ? 'Trend: registrations per month (demo)' : 'Trend: registrations per week (demo)';
+  }
+}
+
+function renderAdminDashboard({ isAdmin }) {
+  const data = buildAdminAnalyticsData();
+  window.__adminAnalyticsData = data;
+
+  $('#a-total-students') && ($('#a-total-students').textContent = String(data.studentCount));
+  $('#a-active-courses') && ($('#a-active-courses').textContent = String(data.activeCourses));
+  $('#a-new-registrations') && ($('#a-new-registrations').textContent = String(data.newRegistrations));
+
+  const pctEl = $('#a-new-registrations-pct');
+  if (pctEl) {
+    const delta = data.pctChange;
+    const label = Number.isFinite(delta) ? (delta >= 0 ? `+${Math.round(delta * 100)}%` : `${Math.round(delta * 100)}%`) : '—';
+    pctEl.textContent = label;
+  }
+
+  // Department distribution
+  const deptCanvas = $('#dept-chart');
+  if (deptCanvas) {
+    const dpr = window.devicePixelRatio || 1;
+    const rect = deptCanvas.getBoundingClientRect();
+    deptCanvas.width = Math.floor((rect.width || 220) * dpr);
+    deptCanvas.height = Math.floor((rect.height || 220) * dpr);
+
+    const ctx = deptCanvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    drawDonutChart(ctx, data.deptPctArr.slice(0, 6), data.deptColors);
+  }
+
+  const deptList = $('#dept-list');
+  if (deptList) {
+    const items = data.deptPctArr.slice(0, 6);
+    if (!items.length) {
+      deptList.innerHTML = `<div class="muted small">No department breakdown available.</div>`;
+    } else {
+      deptList.innerHTML = '';
+      items.forEach((d, i) => {
+        const color = data.deptColors[i % data.deptColors.length];
+        const pct = Math.round(d.pct * 100);
+        const row = document.createElement('div');
+        row.className = 'dept-item';
+        row.innerHTML = `
+          <div class="dept-left">
+            <span class="dept-swatch" style="background:${color};"></span>
+            <span class="dept-name">${escapeHtml(d.dept)}</span>
+          </div>
+          <span class="dept-pct">${pct}%</span>
+        `;
+        deptList.appendChild(row);
+      });
+    }
+  }
+
+  // Activities feed
+  const feed = $('#activities-feed');
+  const empty = $('#activities-empty');
+  if (feed) {
+    const acts = (data.activities || []).slice(0, 8);
+    feed.innerHTML = '';
+    if (!acts.length) {
+      empty && (empty.style.display = 'block');
+    } else {
+      empty && (empty.style.display = 'none');
+      acts.forEach((a) => {
+        const item = document.createElement('div');
+        item.className = 'activity-item';
+        const typeLabel = a.kind === 'enrollment' ? 'Enrollment' : a.kind === 'update' ? 'Update' : 'Payment';
+        item.innerHTML = `
+          <div class="activity-main">
+            <div class="activity-title">${typeLabel} • ${escapeHtml(a.courseName)}</div>
+            <div class="activity-sub">${escapeHtml(a.detail)}</div>
+          </div>
+          <div class="activity-date">${escapeHtml(formatDateShort(a.when))}</div>
+        `;
+        feed.appendChild(item);
+      });
+    }
+  }
+
+  // Render initial trends
+  renderAdminTrendsChart('weekly');
+
+  const updatedEl = $('#activities-updated');
+  if (updatedEl) {
+    updatedEl.textContent = `Updated ${formatDateShort(new Date().toISOString())}`;
+  }
+}
+
 
 function renderDashboard(student) {
   const dashGreeting = $('#dash-greeting');
@@ -1094,6 +1502,51 @@ function bindCatalogControls() {
 
     return;
   }
+
+  // Admin Analytics page
+  if (page === 'admin_analytics') {
+    // Minimal gate; still renders demo UI even if not in admin mode.
+    // For real app, replace with proper auth/role.
+    const adminModel = { isAdmin: getAdminMode() };
+    if (!adminModel.isAdmin) {
+      // If not admin, still render charts using demo data.
+      adminModel.isAdmin = false;
+    }
+    renderAdminDashboard(adminModel);
+
+
+    const logout = $('#admin-logout-btn');
+    logout?.addEventListener('click', () => {
+      localStorage.removeItem(LS_SESS);
+      window.location.assign('login.html');
+    });
+
+    const btn = $('#admin-generate-report');
+    const btn2 = $('#admin-generate-report-2');
+    const reportHandler = () => {
+      const payload = collectAdminAnalyticsPayload();
+      generateDownloadFile(payload, `course-reg-admin-report-${new Date().toISOString().slice(0, 10)}.json`);
+    };
+    btn?.addEventListener('click', reportHandler);
+    btn2?.addEventListener('click', reportHandler);
+
+    // Tabs
+    const tabBtns = document.querySelectorAll('.tab[data-trends]');
+    tabBtns.forEach((t) => {
+      t.addEventListener('click', () => {
+        tabBtns.forEach((x) => x.classList.remove('is-active'));
+        t.classList.add('is-active');
+        renderAdminTrendsChart(t.dataset.trends);
+      });
+    });
+
+    // Initial render based on active tab
+    const activeTab = document.querySelector('.tab[data-trends].is-active');
+    renderAdminTrendsChart(activeTab?.dataset?.trends || 'weekly');
+
+    return;
+  }
+
 })();
 
 

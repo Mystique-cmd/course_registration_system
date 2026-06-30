@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Course Registration - Admin Analytics</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="app" data-page="admin_analytics">
+    <section class="admin" aria-label="Admin Analytics Dashboard">
+      <aside class="sidebar sidebar-admin" aria-label="Admin sidebar navigation">
+        <div class="brand-title sidebar-brand">Atomicity</div>
+
+        <nav class="nav" aria-label="Admin Primary">
+          <button class="nav-item is-active" type="button" data-nav="dashboard">Dashboard</button>
+          <button class="nav-item" type="button" data-nav="analytics">Analytics</button>
+          <button class="nav-item" type="button" data-nav="students">Students</button>
+          <button class="nav-item" type="button" data-nav="courses">Courses</button>
+          <button class="nav-item" type="button" data-nav="reports">Reports</button>
+        </nav>
+
+        <div class="sidebar-actions">
+          <button class="btn btn-ghost" type="button" id="admin-generate-report">Generate Report</button>
+          <button class="btn btn-ghost" type="button" id="admin-logout-btn">Logout</button>
+        </div>
+      </aside>
+
+      <div class="admin-main">
+        <header class="dash-header admin-header">
+          <div>
+            <div class="dash-greeting" id="admin-dash-greeting">Hello, Admin</div>
+            <div class="dash-sub" id="admin-dash-sub">Analytics Overview</div>
+          </div>
+        </header>
+
+        <div class="admin-grid">
+          <section class="card admin-card" aria-label="Analytics overview">
+            <h2 class="card-title">Overview</h2>
+            <div class="analytics-cards" role="list" aria-label="Analytics summary cards">
+              <div class="a-card" role="listitem">
+                <div class="a-label">Total Students</div>
+                <div class="a-value" id="a-total-students">0</div>
+              </div>
+
+              <div class="a-card" role="listitem">
+                <div class="a-label">Active Courses</div>
+                <div class="a-value" id="a-active-courses">0</div>
+              </div>
+
+              <div class="a-card" role="listitem">
+                <div class="a-label">New Registrations</div>
+                <div class="a-value" id="a-new-registrations">0</div>
+                <div class="a-sub" id="a-new-registrations-pct">—</div>
+              </div>
+            </div>
+          </section>
+
+          <section class="card admin-card" aria-label="Enrollment trends">
+            <div class="card-topline">
+              <h2 class="card-title" style="margin:0;">Enrollment Trends</h2>
+              <div class="tabs" role="tablist" aria-label="Enrollment trends tabs">
+                <button class="tab is-active" type="button" role="tab" aria-selected="true" data-trends="weekly">Weekly</button>
+                <button class="tab" type="button" role="tab" aria-selected="false" data-trends="monthly">Monthly</button>
+              </div>
+            </div>
+            <div class="chart-wrap" aria-label="Enrollment trends chart">
+              <canvas id="trend-chart" height="220" width="560"></canvas>
+            </div>
+            <div class="chart-legend" id="trend-legend"></div>
+          </section>
+
+          <section class="card admin-card" aria-label="Department distribution">
+            <h2 class="card-title">Department Distribution</h2>
+            <div class="chart-split">
+              <div class="chart-wrap" aria-label="Department distribution donut chart">
+                <canvas id="dept-chart" height="220" width="220"></canvas>
+              </div>
+              <div class="dept-list" id="dept-list" aria-label="Department distribution list"></div>
+            </div>
+          </section>
+
+          <section class="card admin-card" aria-label="Recent course activities">
+            <div class="card-topline">
+              <h2 class="card-title" style="margin:0;">Recent Course Activities</h2>
+              <div class="muted small" id="activities-updated">—</div>
+            </div>
+            <div class="feed" id="activities-feed" role="feed" aria-label="Recent activity feed"></div>
+            <div class="muted small" id="activities-empty" style="margin-top:10px;">No activity data available yet.</div>
+          </section>
+        </div>
+
+        <section class="card admin-card admin-bottom" aria-label="Reports">
+          <div class="card-topline">
+            <h2 class="card-title" style="margin:0;">Reports</h2>
+            <div class="muted small">Export current analytics & recent activities</div>
+          </div>
+          <div class="admin-report-row">
+            <button class="btn" type="button" id="admin-generate-report-2">Generate Report</button>
+            <div class="muted small" id="report-status" aria-live="polite"></div>
+          </div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
+

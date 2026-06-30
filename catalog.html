@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Course Registration - Course Catalog</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="app" data-page="catalog">
+    <section class="catalog" aria-label="Course Catalog">
+      <aside class="catalog-sidebar" aria-label="Catalog sidebar">
+        <div class="brand-title sidebar-brand">Atomicity</div>
+        <div class="cat-block">
+          <div class="cat-label">Departments</div>
+          <div class="cat-pill-group" id="department-pills" role="list"></div>
+        </div>
+
+        <div class="cat-block">
+          <div class="cat-label">Semester</div>
+          <div class="cat-pill-group" id="semester-pills" role="list"></div>
+        </div>
+
+        <div class="cat-block">
+          <div class="cat-label">Quick filters</div>
+          <div class="cat-checkboxes">
+            <label class="cat-check"><input type="checkbox" id="filter-available" /> <span>Available</span></label>
+            <label class="cat-check"><input type="checkbox" id="filter-waitlist" /> <span>Waitlist</span></label>
+          </div>
+        </div>
+
+        <div class="cat-actions">
+          <button class="btn btn-ghost" type="button" id="catalog-reset-btn">Reset</button>
+        </div>
+      </aside>
+
+      <div class="catalog-main">
+        <header class="cat-header">
+          <div>
+            <h1 class="headline" style="margin:0; font-size:26px;">Course Catalog</h1>
+            <p class="subhead" style="margin:4px 0 0;">Browse courses by department and semester</p>
+          </div>
+
+          <div class="cat-back">
+            <button class="btn btn-ghost" type="button" id="catalog-back-btn">Back to Dashboard</button>
+          </div>
+        </header>
+
+        <div class="cat-status" role="status" aria-live="polite">
+          <div class="cat-status-item">Last update: <strong id="catalog-updated">—</strong></div>
+          <div class="cat-status-item">Current credits: <strong id="catalog-credits">0</strong></div>
+        </div>
+
+        <div class="cat-grid" id="catalog-cards" role="list"></div>
+
+        <div class="cat-empty" id="catalog-empty">No courses match the selected filters.</div>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
+

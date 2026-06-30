@@ -3,19 +3,13 @@ const LS_SESS = 'atomicity_session_v1';
 
 const $ = (sel) => document.querySelector(sel);
 
-const views = {
-  login: $('#login-view'),
-  register: $('#register-view'),
-  courses: $('#courses-view'),
-  dashboard: $('#dashboard-view'),
-};
-
-const dashNav = {
-  dashboard: $('#dash-secondary-title'),
-};
-
+function getPage() {
+  const main = $('main.app');
+  return main?.dataset?.page || 'index';
+}
 
 function getUsers() {
+
   try {
     return JSON.parse(localStorage.getItem(LS_KEY) || '[]');
   } catch {
@@ -39,13 +33,8 @@ function getSession() {
   }
 }
 
-function showView(name) {
-  Object.entries(views).forEach(([k, el]) => {
 
-    if (!el) return;
-    el.hidden = k !== name;
-  });
-}
+
 
 function normalize(s) {
   return String(s || '').trim();
@@ -352,172 +341,422 @@ function escapeHtml(str) {
     .replaceAll("'", '&#039;');
 }
 
+function getCourseCatalogData() {
+  return [
+    {
+      courseCode: 'CS 101',
+      title: 'Intro to Programming',
+      instructor: 'Dr. A. Mwangi',
+      enrollmentStatus: 'Open',
+      seatsFilled: 38,
+      seatsTotal: 50,
+      waitlistCount: 0,
+      waitlistPositionInfo: '',
+      department: 'Computer Science',
+      semester: 'Semester 1',
+    },
+    {
+      courseCode: 'CS 201',
+      title: 'Data Structures',
+      instructor: 'Prof. J. Otieno',
+      enrollmentStatus: 'Waitlist',
+      seatsFilled: 60,
+      seatsTotal: 60,
+      waitlistCount: 17,
+      waitlistPositionInfo: 'Positions 1–17 available',
+      department: 'Computer Science',
+      semester: 'Semester 1',
+    },
+    {
+      courseCode: 'IT 120',
+      title: 'IT Fundamentals',
+      instructor: 'Dr. N. Wanjiku',
+      enrollmentStatus: 'Open',
+      seatsFilled: 24,
+      seatsTotal: 40,
+      waitlistCount: 0,
+      waitlistPositionInfo: '',
+      department: 'IT',
+      semester: 'Semester 1',
+    },
+    {
+      courseCode: 'BIT 210',
+      title: 'Business & Technology',
+      instructor: 'Prof. K. Wambui',
+      enrollmentStatus: 'Open',
+      seatsFilled: 29,
+      seatsTotal: 45,
+      waitlistCount: 0,
+      waitlistPositionInfo: '',
+      department: 'Business IT',
+      semester: 'Semester 2',
+    },
+    {
+      courseCode: 'CS 305',
+      title: 'Advanced React Patterns',
+      instructor: 'Dr. S. Njoroge',
+      enrollmentStatus: 'Waitlist',
+      seatsFilled: 55,
+      seatsTotal: 55,
+      waitlistCount: 9,
+      waitlistPositionInfo: 'Positions 1–9 available',
+      department: 'Computer Science',
+      semester: 'Semester 2',
+    },
+    {
+      courseCode: 'ENG 110',
+      title: 'Engineering Fundamentals',
+      instructor: 'Dr. P. Kimani',
+      enrollmentStatus: 'Open',
+      seatsFilled: 18,
+      seatsTotal: 30,
+      waitlistCount: 0,
+      waitlistPositionInfo: '',
+      department: 'Engineering',
+      semester: 'Semester 2',
+    },
+  ];
+}
+
+function renderCatalogPills() {
+  const depts = ['All', 'Computer Science', 'IT', 'Business IT', 'Engineering'];
+  const semesters = ['All', 'Semester 1', 'Semester 2'];
+
+  // ensure we only bind these once per page load
+  if (renderCatalogPills._pillsBound) {
+    return;
+  }
+
+
+  const deptWrap = $('#department-pills');
+  const semWrap = $('#semester-pills');
+  if (!deptWrap || !semWrap) return;
+
+  deptWrap.innerHTML = '';
+  semWrap.innerHTML = '';
+
+  for (const d of depts) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'cat-pill';
+    if (d === 'All') b.classList.add('is-active');
+    b.dataset.dept = d;
+    b.textContent = d;
+    deptWrap.appendChild(b);
+  }
+
+  for (const s of semesters) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'cat-pill';
+    if (s === 'All') b.classList.add('is-active');
+    b.dataset.sem = s;
+    b.textContent = s;
+    semWrap.appendChild(b);
+  }
+
+  // set defaults for pill clicks (event delegation)
+  deptWrap.addEventListener('click', (e) => {
+
+    const t = e.target.closest('.cat-pill');
+    if (!t) return;
+    [...deptWrap.querySelectorAll('.cat-pill')].forEach((x) => x.classList.remove('is-active'));
+    t.classList.add('is-active');
+    const sess = getSession();
+    const users = getUsers();
+    const raw = sess?.studentId ? users.find((u) => u.studentId === sess.studentId) : null;
+    const student = raw ? migrateUserModel(raw) : null;
+    renderCatalog(student);
+  });
+
+  semWrap.addEventListener('click', (e) => {
+    const t = e.target.closest('.cat-pill');
+    if (!t) return;
+    [...semWrap.querySelectorAll('.cat-pill')].forEach((x) => x.classList.remove('is-active'));
+    t.classList.add('is-active');
+    const sess = getSession();
+    const users = getUsers();
+    const raw = sess?.studentId ? users.find((u) => u.studentId === sess.studentId) : null;
+    const student = raw ? migrateUserModel(raw) : null;
+    renderCatalog(student);
+  });
+}
+
+function renderCatalog(student) {
+  const cards = $('#catalog-cards');
+  const empty = $('#catalog-empty');
+  const updatedEl = $('#catalog-updated');
+  const creditsEl = $('#catalog-credits');
+
+  if (!cards || !empty) return;
+
+  const catalogUpdated = new Date().toISOString();
+  if (updatedEl) updatedEl.textContent = formatDateShort(catalogUpdated);
+
+  const currentCredits = Number(student?.creditsEarned || 0);
+  if (creditsEl) creditsEl.textContent = String(currentCredits);
+
+  const catalog = getCourseCatalogData();
+
+  const selectedDept = $('#department-pills')?.querySelector('.cat-pill.is-active')?.dataset?.dept || 'All';
+  const selectedSem = $('#semester-pills')?.querySelector('.cat-pill.is-active')?.dataset?.sem || 'All';
+
+  const filterAvailable = $('#filter-available')?.checked;
+  const filterWaitlist = $('#filter-waitlist')?.checked;
+
+  const filtered = catalog
+    .filter((c) => (selectedDept === 'All' ? true : c.department === selectedDept))
+    .filter((c) => (selectedSem === 'All' ? true : c.semester === selectedSem))
+    .filter((c) => {
+      if (filterAvailable && filterWaitlist) return true;
+      if (filterAvailable) return c.enrollmentStatus === 'Open';
+      if (filterWaitlist) return c.enrollmentStatus === 'Waitlist';
+      return true;
+    });
+
+  cards.innerHTML = '';
+
+  if (filtered.length === 0) {
+    empty.classList.add('show');
+    return;
+  }
+  empty.classList.remove('show');
+
+  for (const c of filtered) {
+    const statusBadge = c.enrollmentStatus === 'Open'
+      ? `<span class="badge-mini badge-available">${escapeHtml(c.enrollmentStatus)}</span>`
+      : `<span class="badge-mini badge-wait">${escapeHtml(c.enrollmentStatus)}</span>`;
+
+    const waitInfo = c.enrollmentStatus === 'Waitlist'
+      ? `Waitlist: ${escapeHtml(c.waitlistPositionInfo || 'Join to view position')}`
+      : `Seats filled: ${escapeHtml(String(c.seatsFilled))}/${escapeHtml(String(c.seatsTotal))}`;
+
+    const card = document.createElement('div');
+    card.className = 'course-catalog-card';
+    card.setAttribute('role', 'listitem');
+
+    card.innerHTML = `
+      <div class="course-catalog-top">
+        <div>
+          <div class="course-catalog-code">${escapeHtml(c.courseCode)}</div>
+          <div class="course-catalog-title">${escapeHtml(c.title)}</div>
+        </div>
+        <div class="cat-badges">${statusBadge}</div>
+      </div>
+
+      <div class="course-catalog-meta">
+        <div><strong>Instructor:</strong> ${escapeHtml(c.instructor)}</div>
+        <div><strong>Semester:</strong> ${escapeHtml(c.semester)} • <strong>Dept:</strong> ${escapeHtml(c.department)}</div>
+        <div><strong>Status:</strong> ${escapeHtml(c.enrollmentStatus)} • <strong>${escapeHtml(waitInfo)}</strong></div>
+      </div>
+
+      <div class="cat-badges" style="margin-top:12px;">
+        <span class="badge-mini">Seats: ${escapeHtml(String(c.seatsFilled))}/${escapeHtml(String(c.seatsTotal))}</span>
+        ${c.enrollmentStatus === 'Waitlist' ? `<span class="badge-mini">Waitlist: ${escapeHtml(String(c.waitlistCount || 0))}</span>` : ''}
+      </div>
+    `;
+
+    cards.appendChild(card);
+  }
+}
+
+function bindCatalogControls() {
+  const avail = $('#filter-available');
+  const wait = $('#filter-waitlist');
+  const reset = $('#catalog-reset-btn');
+  const back = $('#catalog-back-btn');
+
+  // avoid rebinding on repeated catalog entry
+  if (bindCatalogControls._bound) return;
+  bindCatalogControls._bound = true;
+
+
+
+
+  const refresh = () => {
+    const sess = getSession();
+    const users = getUsers();
+    const raw = sess?.studentId ? users.find((u) => u.studentId === sess.studentId) : null;
+    const student = raw ? migrateUserModel(raw) : null;
+    renderCatalog(student);
+  };
+
+  avail?.addEventListener('change', refresh);
+  wait?.addEventListener('change', refresh);
+
+  reset?.addEventListener('click', () => {
+    $('#filter-available') && ($('#filter-available').checked = false);
+    $('#filter-waitlist') && ($('#filter-waitlist').checked = false);
+
+    const deptWrap = $('#department-pills');
+    const semWrap = $('#semester-pills');
+    deptWrap?.querySelectorAll('.cat-pill').forEach((x) => x.classList.remove('is-active'));
+    semWrap?.querySelectorAll('.cat-pill').forEach((x) => x.classList.remove('is-active'));
+    deptWrap?.querySelector('.cat-pill[data-dept="All"]')?.classList.add('is-active');
+    semWrap?.querySelector('.cat-pill[data-sem="All"]')?.classList.add('is-active');
+
+    refresh();
+  });
+
+  back?.addEventListener('click', () => {
+    showView('dashboard');
+  });
+}
+
+
 // Init
 (function init() {
-  // Default route
-  const sess = getSession();
-  if (sess?.studentId) {
+  const page = getPage();
+
+  // Shared: Login/Registration page
+  if (page === 'login') {
+    const registerInline = $('#register-inline');
+
+    $('#create-link')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (registerInline) registerInline.hidden = false;
+    });
+
+    $('#view-login-link')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (registerInline) registerInline.hidden = true;
+    });
+
+    $('#login-form')?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const studentId = normalize(e.target.studentId.value);
+      const password = normalize(e.target.password.value);
+
+      if (!studentId || !password) return;
+
+      const usersLogin = getUsers();
+      const user = usersLogin.find((u) => u.studentId === studentId && u.password === password);
+
+      if (!user) {
+        alert('Invalid Student ID or Password.');
+        return;
+      }
+
+      setSession(studentId);
+      window.location.assign('dashboard.html');
+    });
+
+    $('#forgot-link')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      alert('Password reset is not implemented in this step.');
+    });
+
+    $('#register-form')?.addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      const studentName = normalize(e.target.studentName.value);
+      const email = normalize(e.target.email.value);
+      const courseName = normalize(e.target.courseName.value);
+      const kcse = normalize(e.target.kcse.value);
+
+      if (!studentName || !email || !courseName || !kcse) return;
+
+      const studentId = email.split('@')[0];
+      const password = 'default';
+
+      const users = getUsers();
+      const existing = users.find((u) => u.studentId === studentId);
+
+      if (existing) {
+        existing.registrations = existing.registrations || [];
+        existing.registrations.push({ courseName, kcseGrade: kcse });
+      } else {
+        users.push({
+          studentId,
+          password,
+          studentName,
+          email,
+          registrations: [{ courseName, kcseGrade: kcse }],
+        });
+      }
+
+      setUsers(users);
+      setSession(studentId);
+      window.location.assign('dashboard.html');
+    });
+
+    return;
+  }
+
+  // Student Dashboard page
+  if (page === 'dashboard') {
+    const sess = getSession();
+    if (!sess?.studentId) {
+      window.location.assign('login.html');
+      return;
+    }
+
+    const users = getUsers();
+    const raw = users.find((u) => u.studentId === sess.studentId);
+    if (!raw) {
+      localStorage.removeItem(LS_SESS);
+      window.location.assign('login.html');
+      return;
+    }
+
+    const student = migrateUserModel(raw);
+    renderDashboard(student);
+
+    const logoutBtn = $('#logout-btn');
+    const dropBtn = $('#drop-course-btn');
+    const catalogBtn = $('#catalog-page-btn');
+
+    catalogBtn?.addEventListener('click', () => {
+      window.location.assign('catalog.html');
+    });
+
+    logoutBtn?.addEventListener('click', () => {
+      localStorage.removeItem(LS_SESS);
+      window.location.assign('login.html');
+    });
+
+    dropBtn?.addEventListener('click', () => {
+      const sessNow = getSession();
+      if (!sessNow?.studentId) return;
+
+      const usersForDrop = getUsers();
+      const user = usersForDrop.find((u) => u.studentId === sessNow.studentId);
+      if (!user || !user.registrations || user.registrations.length === 0) return;
+
+      user.registrations.pop();
+      setUsers(usersForDrop);
+
+      const rawAfter = usersForDrop.find((u) => u.studentId === sessNow.studentId);
+      const studentAfter = rawAfter ? migrateUserModel(rawAfter) : null;
+      if (studentAfter) renderDashboard(studentAfter);
+    });
+
+    return;
+  }
+
+  // Catalog page
+  if (page === 'catalog') {
+    const sess = getSession();
+    if (!sess?.studentId) {
+      window.location.assign('login.html');
+      return;
+    }
+
     const users = getUsers();
     const raw = users.find((u) => u.studentId === sess.studentId);
     const student = raw ? migrateUserModel(raw) : null;
 
-    if (student) {
-      renderDashboard(student);
-      showView('dashboard');
-    } else {
-      renderCoursesFor(sess.studentId);
-      showView('login');
-    }
+    // Fill initial state
+    renderCatalogPills();
+    bindCatalogControls();
+    renderCatalog(student);
+
+    $('#catalog-back-btn')?.addEventListener('click', () => {
+      window.location.assign('dashboard.html');
+    });
+
+    return;
   }
-
-
-  // Dashboard (static wiring for now)
-  const logoutBtn = $('#logout-btn');
-  const dropBtn = $('#drop-course-btn');
-
-  logoutBtn?.addEventListener('click', () => {
-    localStorage.removeItem(LS_SESS);
-    showView('login');
-    // keep courses rendered when logging back in
-  });
-
-  dropBtn?.addEventListener('click', () => {
-    const sess = getSession();
-    if (!sess?.studentId) return;
-    // Drop the last registered course for now
-    const usersForDrop = getUsers();
-    const user = usersForDrop.find((u) => u.studentId === sess.studentId);
-
-    if (!user || !user.registrations || user.registrations.length === 0) return;
-
-    user.registrations.pop();
-    setUsers(usersForDrop);
-
-    const rawAfter = usersForDrop.find((u) => u.studentId === sess.studentId);
-
-    const studentAfter = rawAfter ? migrateUserModel(rawAfter) : null;
-
-    if (studentAfter) {
-      renderDashboard(studentAfter);
-    }
-
-    renderCoursesFor(sess.studentId);
-
-  });
-
-
-
-
-  // Login
-  $('#login-form')?.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const studentId = normalize(e.target.studentId.value);
-    const password = normalize(e.target.password.value);
-
-    if (!studentId || !password) return;
-
-    const usersLogin = getUsers();
-    const user = usersLogin.find((u) => u.studentId === studentId && u.password === password);
-
-
-    if (!user) {
-      alert('Invalid Student ID or Password.');
-      return;
-    }
-
-    setSession(studentId);
-
-    const users = getUsers();
-    const raw = users.find((u) => u.studentId === studentId);
-    const student = raw ? migrateUserModel(raw) : null;
-
-    if (student) {
-      renderDashboard(student);
-      showView('dashboard');
-    } else {
-      renderCoursesFor(studentId);
-      showView('courses');
-    }
-
-    e.target.reset();
-  });
-
-
-  // Forgot password (placeholder per step 1)
-  $('#forgot-link')?.addEventListener('click', (e) => {
-    e.preventDefault();
-    alert('Password reset is not implemented in this step.');
-  });
-
-  // Switch: login -> register
-  $('#create-link')?.addEventListener('click', (e) => {
-    e.preventDefault();
-    showView('register');
-  });
-
-  // Switch: register -> login
-  $('#view-courses-link')?.addEventListener('click', (e) => {
-    e.preventDefault();
-    showView('login');
-  });
-
-  // Registration
-  $('#register-form')?.addEventListener('submit', (e) => {
-    e.preventDefault();
-
-    const studentName = normalize(e.target.studentName.value);
-    const email = normalize(e.target.email.value);
-    const courseName = normalize(e.target.courseName.value);
-    const kcse = normalize(e.target.kcse.value);
-
-    if (!studentName || !email || !courseName || !kcse) return;
-
-    // For step 1, use email as Student ID surrogate only if student id isn't separately collected.
-    // But design says login uses Student ID, so we create studentId from email prefix.
-    // If you later want a dedicated Student ID field in registration, we will adjust.
-    const studentId = email.split('@')[0];
-    const password = 'default';
-
-    const users = getUsers();
-    const existing = users.find((u) => u.studentId === studentId);
-
-    if (existing) {
-      // Append registration
-      existing.registrations = existing.registrations || [];
-      existing.registrations.push({ courseName, kcseGrade: kcse });
-    } else {
-      users.push({
-        studentId,
-        password,
-        studentName,
-        email,
-        registrations: [{ courseName, kcseGrade: kcse }],
-      });
-    }
-
-    setUsers(users);
-
-    // For UX: show courses after registration
-    setSession(studentId);
-
-    const usersAfter = getUsers();
-    const rawAfter = usersAfter.find((u) => u.studentId === studentId);
-    const studentAfter = rawAfter ? migrateUserModel(rawAfter) : null;
-
-    if (studentAfter) {
-      renderDashboard(studentAfter);
-      showView('dashboard');
-    } else {
-      renderCoursesFor(studentId);
-      showView('courses');
-    }
-
-
-    e.target.reset();
-  });
-
-  $('#back-to-auth')?.addEventListener('click', () => {
-    showView('login');
-  });
 })();
+
 

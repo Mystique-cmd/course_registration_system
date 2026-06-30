@@ -8,6 +8,11 @@
   - [x] Refactor `app.js` to be page-aware (only bind/render relevant logic per page)
   - [x] Update (or simplify) `index.html` after split
   - [x] Sanity test: login -> dashboard, dashboard -> catalog -> dashboard, logout (basic: pages load)
-- [ ] Verify catalog filtering + back navigation (manual UI test)
+  - [ ] Verify catalog filtering + back navigation (manual UI test)
 
+- [ ] Add **Weekly Schedule** feature
+  - [x] Update dashboard UI: Weekly Schedule grid (Mon–Fri, 8–4) + Upcoming Tests countdown panel + Pending Tasks panel + Study Session Suggestion panel with “Find a Room”
+  - [x] Update app.js: seed needed data (course code/title, tasks), parse schedule strings, render weekly grid with color-coded blocks, compute countdown, bind Find a Room button
+  - [x] Update styles.css: styling for weekly grid + panels + course blocks
+  - [ ] Manual test: login -> dashboard -> verify weekly schedule blocks and countdown
 

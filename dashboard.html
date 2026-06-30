@@ -34,7 +34,7 @@
           </div>
         </header>
 
-        <div class="grid">
+        <div class="grid grid-2col">
           <section class="card" aria-label="Degree progress">
             <h2 class="card-title">Degree Progress</h2>
             <div class="progress">
@@ -79,6 +79,37 @@
           <section class="card" aria-label="Dashboard content">
             <h2 class="card-title" id="dash-secondary-title">Dashboard</h2>
             <div class="muted" id="dash-secondary-body">Select an item from the sidebar.</div>
+          </section>
+        </div>
+
+        <div class="weekly-row">
+          <section class="card weekly-card" aria-label="Weekly Schedule">
+            <h2 class="card-title">Weekly Schedule</h2>
+            <div class="weekly-sub muted small">Monday–Friday • 8:00 AM–4:00 PM</div>
+            <div class="weekly-schedule" id="weekly-schedule" aria-label="Weekly schedule grid"></div>
+          </section>
+
+          <section class="card weekly-side" aria-label="Upcoming Tests">
+            <h2 class="card-title">Upcoming Tests</h2>
+            <div class="muted small">Countdown to your next course tests</div>
+            <div class="list" id="tests-countdown-list" aria-label="Tests countdown list" style="margin-top:10px;"></div>
+            <div class="muted small" id="tests-countdown-empty" style="margin-top:10px;">No upcoming tests.</div>
+          </section>
+
+          <section class="card weekly-side" aria-label="Pending Tasks">
+            <h2 class="card-title">Pending Tasks</h2>
+            <div class="muted small">Things to do before your next assessments</div>
+            <div class="list" id="pending-tasks-list" aria-label="Pending tasks list" style="margin-top:10px;"></div>
+            <div class="muted small" id="pending-tasks-empty" style="margin-top:10px;">No pending tasks.</div>
+          </section>
+
+          <section class="card weekly-side" aria-label="Study Session Suggestion">
+            <h2 class="card-title">Study Session Suggestion</h2>
+            <div class="muted small" id="study-suggestion-body">—</div>
+            <div class="study-actions" style="margin-top:12px;">
+              <button class="btn btn-ghost" type="button" id="find-room-btn">Find a Room</button>
+            </div>
+            <div class="muted small" id="room-result" style="margin-top:10px; display:none;"></div>
           </section>
         </div>
 

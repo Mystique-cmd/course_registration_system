@@ -58,6 +58,14 @@
           </label>
 
           <label class="field">
+            <span class="label">Password</span>
+            <input class="input" name="password" type="password" placeholder="••••••••" 
+                   pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&amp;])[A-Za-z\d@$!%*?&amp;]{8,}$"
+                   title="Password must be at least 8 characters long, and contain at least one uppercase letter, one lowercase letter, one number, and one special character."
+                   required />
+          </label>
+
+          <label class="field">
             <span class="label">course name</span>
             <select class="input" name="courseName" required>
               <option value="" disabled selected>Select a course</option>

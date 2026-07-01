@@ -1,7 +1,25 @@
-const LS_KEY = 'atomicity_users_v1';
-const LS_SESS = 'atomicity_session_v1';
-
 const $ = (sel) => document.querySelector(sel);
+
+const API_BASE = (window.__API_BASE__ || '').trim() || 'http://localhost:3000';
+
+function apiFetch(path, options = {}) {
+  return fetch(`${API_BASE}${path}`, {
+    ...options,
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(options.headers || {}),
+    },
+  }).then(async (res) => {
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const msg = data?.error || `Request failed (${res.status})`;
+      throw new Error(msg);
+    }
+    return data;
+  });
+}
+
 
 function getPage() {
   const main = $('main.app');
@@ -9,37 +27,15 @@ function getPage() {
 }
 
 function getAdminMode() {
-  // Lightweight demo: treat session studentId === 'admin' as admin.
-  // Admin page is still usable directly, but this gate controls data binding.
-  const sess = getSession();
-  return sess?.studentId === 'admin';
+  // Backend decides admin-gated analytics; this helper is no longer used for auth.
+  // Keep returning false by default.
+  return false;
 }
 
 
-function getUsers() {
 
-  try {
-    return JSON.parse(localStorage.getItem(LS_KEY) || '[]');
-  } catch {
-    return [];
-  }
-}
+// localStorage-based persistence removed; backend is now source of truth.
 
-function setUsers(users) {
-  localStorage.setItem(LS_KEY, JSON.stringify(users));
-}
-
-function setSession(studentId) {
-  localStorage.setItem(LS_SESS, JSON.stringify({ studentId }));
-}
-
-function getSession() {
-  try {
-    return JSON.parse(localStorage.getItem(LS_SESS) || 'null');
-  } catch {
-    return null;
-  }
-}
 
 
 
@@ -173,109 +169,22 @@ function getDepartmentForCourseName(courseName) {
 }
 
 function buildAdminAnalyticsData() {
-  const users = getUsers();
-
-  const studentCount = users.length;
-  const allRegistrations = [];
-  for (const u of users) {
-    const regs = u.registrations || [];
-    for (const r of regs) {
-      allRegistrations.push({ studentId: u.studentId, courseName: r.courseName, kcseGrade: r.kcseGrade });
-    }
-  }
-
-  const uniqueCourses = new Set(allRegistrations.map((r) => r.courseName));
-  const activeCourses = uniqueCourses.size;
-
-  // New registrations: approximate by using the current array size and comparing to a synthetic previous period.
-  const seed = hashStringToSeed(JSON.stringify({ studentCount, activeCourses, totalRegs: allRegistrations.length }));
-  const rnd = mulberry32(seed);
-
-  const totalRegs = allRegistrations.length;
-  const weeklyNow = Math.max(0, Math.floor(totalRegs / 5 + rnd() * 3));
-  const weeklyPrev = Math.max(0, Math.floor(weeklyNow * (0.75 + rnd() * 0.5)));
-  const pctChange = weeklyPrev === 0 ? (weeklyNow > 0 ? 1 : 0) : (weeklyNow - weeklyPrev) / weeklyPrev;
-
-  const newRegistrations = weeklyNow;
-
-  // Department distribution
-  const deptCounts = new Map();
-  for (const r of allRegistrations) {
-    const dept = getDepartmentForCourseName(r.courseName);
-    deptCounts.set(dept, (deptCounts.get(dept) || 0) + 1);
-  }
-  const deptArr = Array.from(deptCounts.entries())
-    .map(([dept, count]) => ({ dept, count }))
-    .sort((a, b) => b.count - a.count);
-
-  const totalDept = deptArr.reduce((sum, d) => sum + d.count, 0) || 1;
-  const deptPctArr = deptArr.map((d) => ({ dept: d.dept, pct: d.count / totalDept }));
-
-  const colors = [
-    'rgba(139,92,246,.95)',
-    'rgba(167,139,250,.95)',
-    'rgba(134,239,172,.95)',
-    'rgba(45,212,191,.95)',
-    'rgba(253,224,71,.95)',
-    'rgba(251,113,133,.95)',
-    'rgba(96,165,250,.95)',
-  ];
-
-  // Trends data (demo but deterministic)
-  const makeSeries = (count) => {
-    const base = Math.max(1, Math.round(newRegistrations + activeCourses * 0.8));
-    const series = [];
-    for (let i = 0; i < count; i++) {
-      const wave = Math.sin((i / Math.max(1, count - 1)) * Math.PI * 1.8);
-      const noise = (rnd() - 0.5) * 0.4;
-      const v = Math.max(0, Math.round(base * (0.7 + i / count * 0.5 + wave * 0.18 + noise)));
-      series.push(v);
-    }
-    return series;
-  };
-
-  const weeklySeries = makeSeries(7);
-  const monthlySeries = makeSeries(12);
-
-  // Recent activities
-  const now = Date.now();
-  const activityKinds = ['enrollment', 'update', 'payment'];
-  const coursesSample = Array.from(uniqueCourses);
-
-  const activitySeed = hashStringToSeed(`act-${seed}-${coursesSample.join('|')}`);
-  const rndAct = mulberry32(activitySeed);
-
-  const activities = [];
-  for (let i = 0; i < 8; i++) {
-    const kind = activityKinds[Math.floor(rndAct() * activityKinds.length)];
-    const courseName = coursesSample.length ? coursesSample[Math.floor(rndAct() * coursesSample.length)] : 'Course';
-    const agoDays = Math.floor(rndAct() * 10);
-    const when = new Date(now - agoDays * 86400000 - Math.floor(rndAct() * 86400000 * 0.6));
-    activities.push({
-      kind,
-      courseName,
-      when: when.toISOString(),
-      detail:
-        kind === 'enrollment'
-          ? `New enrollment recorded for ${courseName}.`
-          : kind === 'update'
-            ? `Course information updated for ${courseName}.`
-            : `Payment received for ${courseName}.`,
-    });
-  }
-
-  return {
-    studentCount,
-    activeCourses,
-    newRegistrations,
-    pctChange,
-    deptPctArr,
-    deptColors: colors,
-    weeklySeries,
-    monthlySeries,
-    activities,
+  // Client-side fallback removed for backend-first architecture.
+  // Admin data must be provided by GET /api/admin/analytics.
+  return window.__adminAnalyticsData || {
+    studentCount: 0,
+    activeCourses: 0,
+    newRegistrations: 0,
+    pctChange: 0,
+    deptPctArr: [],
+    deptColors: [],
+    weeklySeries: [0, 0, 0, 0, 0, 0, 0],
+    monthlySeries: new Array(12).fill(0),
+    activities: [],
   };
 }
+
+
 
 function collectAdminAnalyticsPayload() {
   const data = buildAdminAnalyticsData();
@@ -284,6 +193,7 @@ function collectAdminAnalyticsPayload() {
     ...data,
   };
 }
+
 
 function generateDownloadFile(payload, filename) {
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
@@ -1167,6 +1077,7 @@ function renderCatalogPills() {
   const depts = ['All', 'Computer Science', 'IT', 'Business IT', 'Engineering'];
   const semesters = ['All', 'Semester 1', 'Semester 2'];
 
+
   // ensure we only bind these once per page load
   if (renderCatalogPills._pillsBound) {
     return;
@@ -1367,85 +1278,133 @@ function bindCatalogControls() {
       if (registerInline) registerInline.hidden = true;
     });
 
-    $('#login-form')?.addEventListener('submit', (e) => {
+    $('#login-form')?.addEventListener('submit', async (e) => {
       e.preventDefault();
       const studentId = normalize(e.target.studentId.value);
       const password = normalize(e.target.password.value);
 
       if (!studentId || !password) return;
 
-      const usersLogin = getUsers();
-      const user = usersLogin.find((u) => u.studentId === studentId && u.password === password);
-
-      if (!user) {
-        alert('Invalid Student ID or Password.');
-        return;
+      try {
+        await apiFetch('/api/auth/login', {
+          method: 'POST',
+          body: JSON.stringify({ studentId, password }),
+        });
+        window.location.assign('dashboard.html');
+      } catch (err) {
+        alert(String(err?.message || 'Invalid Student ID or Password.'));
       }
-
-      setSession(studentId);
-      window.location.assign('dashboard.html');
     });
+
 
     $('#forgot-link')?.addEventListener('click', (e) => {
       e.preventDefault();
       alert('Password reset is not implemented in this step.');
     });
 
-    $('#register-form')?.addEventListener('submit', (e) => {
+    $('#register-form')?.addEventListener('submit', async (e) => {
       e.preventDefault();
 
       const studentName = normalize(e.target.studentName.value);
       const email = normalize(e.target.email.value);
+      const password = normalize(e.target.password.value);
       const courseName = normalize(e.target.courseName.value);
       const kcse = normalize(e.target.kcse.value);
 
-      if (!studentName || !email || !courseName || !kcse) return;
+      if (!studentName || !email || !password || !courseName || !kcse) return;
 
-      const studentId = email.split('@')[0];
-      const password = 'default';
-
-      const users = getUsers();
-      const existing = users.find((u) => u.studentId === studentId);
-
-      if (existing) {
-        existing.registrations = existing.registrations || [];
-        existing.registrations.push({ courseName, kcseGrade: kcse });
-      } else {
-        users.push({
-          studentId,
-          password,
-          studentName,
-          email,
-          registrations: [{ courseName, kcseGrade: kcse }],
-        });
+      const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+      if (!passwordRegex.test(password)) {
+        alert('Password must be at least 8 characters long, and contain at least one uppercase letter, one lowercase letter, one number, and one special character.');
+        return;
       }
 
-      setUsers(users);
-      setSession(studentId);
-      window.location.assign('dashboard.html');
+      try {
+        await apiFetch('/api/auth/register', {
+          method: 'POST',
+          body: JSON.stringify({ studentName, email, password, courseName, kcse }),
+        });
+        window.location.assign('dashboard.html');
+      } catch (err) {
+        alert(String(err?.message || 'Registration failed.'));
+      }
     });
+
 
     return;
   }
 
   // Student Dashboard page
   if (page === 'dashboard') {
-    const sess = getSession();
-    if (!sess?.studentId) {
-      window.location.assign('login.html');
-      return;
-    }
+    (async () => {
+      try {
+        const student = await apiFetch('/api/students/me');
+        // Keep compatibility with existing renderDashboard expectations.
+        const migrated = migrateUserModel({
+          ...student,
+          // migrateUserModel expects registrations in a specific shape.
+          registrations: (student.registeredCourses || []).map((c) => ({
+            courseName: c.courseName,
+            kcseGrade: c.kcseGrade,
+          })),
+          registeredCourses: student.registeredCourses,
+          waitlist: student.waitlist,
+          notifications: student.notifications,
+          creditsEarned: student.creditsEarned,
+          creditsRequired: student.creditsRequired,
+          studentName: student.studentName,
+          program: student.program,
+        });
 
-    const users = getUsers();
-    const raw = users.find((u) => u.studentId === sess.studentId);
-    if (!raw) {
-      localStorage.removeItem(LS_SESS);
-      window.location.assign('login.html');
-      return;
-    }
+        renderDashboard(migrated);
 
-    const student = migrateUserModel(raw);
-    renderDashboard(student);
+        const logoutBtn = $('#logout-btn');
+        const dropBtn = $('#drop-course-btn');
+        const catalogBtn = $('#catalog-page-btn');
+
+        catalogBtn?.addEventListener('click', () => {
+          window.location.assign('catalog.html');
+        });
+
+        logoutBtn?.addEventListener('click', async () => {
+          try {
+            await apiFetch('/api/auth/logout', { method: 'POST' });
+          } catch {}
+          window.location.assign('login.html');
+        });
+
+        dropBtn?.addEventListener('click', async () => {
+          try {
+            await apiFetch('/api/registrations/drop', { method: 'POST' });
+            const updated = await apiFetch('/api/students/me');
+            const migratedAfter = migrateUserModel({
+              ...updated,
+              registrations: (updated.registeredCourses || []).map((c) => ({
+                courseName: c.courseName,
+                kcseGrade: c.kcseGrade,
+              })),
+              registeredCourses: updated.registeredCourses,
+              waitlist: updated.waitlist,
+              notifications: updated.notifications,
+              creditsEarned: updated.creditsEarned,
+              creditsRequired: updated.creditsRequired,
+              studentName: updated.studentName,
+              program: updated.program,
+            });
+            renderDashboard(migratedAfter);
+          } catch (err) {
+            alert(String(err?.message || 'Drop course failed.'));
+          }
+        });
+
+        return;
+      } catch (err) {
+        window.location.assign('login.html');
+      }
+    })();
+
+    return;
+
 
     const logoutBtn = $('#logout-btn');
     const dropBtn = $('#drop-course-btn');
@@ -1461,19 +1420,8 @@ function bindCatalogControls() {
     });
 
     dropBtn?.addEventListener('click', () => {
-      const sessNow = getSession();
-      if (!sessNow?.studentId) return;
+    // localStorage drop removed; backend handles dropping.
 
-      const usersForDrop = getUsers();
-      const user = usersForDrop.find((u) => u.studentId === sessNow.studentId);
-      if (!user || !user.registrations || user.registrations.length === 0) return;
-
-      user.registrations.pop();
-      setUsers(usersForDrop);
-
-      const rawAfter = usersForDrop.find((u) => u.studentId === sessNow.studentId);
-      const studentAfter = rawAfter ? migrateUserModel(rawAfter) : null;
-      if (studentAfter) renderDashboard(studentAfter);
     });
 
     return;
@@ -1481,71 +1429,150 @@ function bindCatalogControls() {
 
   // Catalog page
   if (page === 'catalog') {
-    const sess = getSession();
-    if (!sess?.studentId) {
-      window.location.assign('login.html');
+    (async () => {
+      try {
+        await apiFetch('/api/students/me');
+      } catch {
+        window.location.assign('login.html');
+        return;
+      }
+
+      // Fill initial state (pills are UI-only)
+      renderCatalogPills();
+      bindCatalogControls();
+
+      // Replace catalog rendering with DB-backed course list.
+      async function renderCatalogFromServer() {
+        const selectedDept = $('#department-pills')?.querySelector('.cat-pill.is-active')?.dataset?.dept || 'All';
+        const selectedSem = $('#semester-pills')?.querySelector('.cat-pill.is-active')?.dataset?.sem || 'All';
+
+        const filterAvailable = $('#filter-available')?.checked;
+        const filterWaitlist = $('#filter-waitlist')?.checked;
+
+        const data = await apiFetch(
+          `/api/catalog?dept=${encodeURIComponent(selectedDept)}&sem=${encodeURIComponent(selectedSem)}&available=${filterAvailable ? 'true' : 'false'}&waitlist=${filterWaitlist ? 'true' : 'false'}`
+        );
+
+        const cards = $('#catalog-cards');
+        const empty = $('#catalog-empty');
+        const updatedEl = $('#catalog-updated');
+        const creditsEl = $('#catalog-credits');
+        if (!cards || !empty) return;
+
+        if (updatedEl) updatedEl.textContent = formatDateShort(new Date().toISOString());
+
+        const student = await apiFetch('/api/students/me');
+        if (creditsEl) creditsEl.textContent = String(student.creditsEarned || 0);
+
+        const catalog = data.courses || [];
+        cards.innerHTML = '';
+
+        if (catalog.length === 0) {
+          empty.classList.add('show');
+          return;
+        }
+        empty.classList.remove('show');
+
+        for (const c of catalog) {
+          const statusBadge = c.enrollmentStatus === 'Open'
+            ? `<span class="badge-mini badge-available">${escapeHtml(c.enrollmentStatus)}</span>`
+            : `<span class="badge-mini badge-wait">${escapeHtml(c.enrollmentStatus)}</span>`;
+
+          const waitInfo = c.enrollmentStatus === 'Waitlist'
+            ? `Waitlist: ${escapeHtml(c.waitlistPositionInfo || 'Join to view position')}`
+            : `Seats filled: ${escapeHtml(String(c.seatsFilled))}/${escapeHtml(String(c.seatsTotal))}`;
+
+          const card = document.createElement('div');
+          card.className = 'course-catalog-card';
+          card.setAttribute('role', 'listitem');
+
+          card.innerHTML = `
+            <div class="course-catalog-top">
+              <div>
+                <div class="course-catalog-code">${escapeHtml(c.courseCode)}</div>
+                <div class="course-catalog-title">${escapeHtml(c.title)}</div>
+              </div>
+              <div class="cat-badges">${statusBadge}</div>
+            </div>
+
+            <div class="course-catalog-meta">
+              <div><strong>Instructor:</strong> ${escapeHtml(c.instructor)}</div>
+              <div><strong>Semester:</strong> ${escapeHtml(c.semester)} • <strong>Dept:</strong> ${escapeHtml(c.department)}</div>
+              <div><strong>Status:</strong> ${escapeHtml(c.enrollmentStatus)} • <strong>${escapeHtml(waitInfo)}</strong></div>
+            </div>
+
+            <div class="cat-badges" style="margin-top:12px;">
+              <span class="badge-mini">Seats: ${escapeHtml(String(c.seatsFilled))}/${escapeHtml(String(c.seatsTotal))}</span>
+              ${c.enrollmentStatus === 'Waitlist' ? `<span class="badge-mini">Waitlist: ${escapeHtml(String(c.waitlistCount || 0))}</span>` : ''}
+            </div>
+          `;
+
+          cards.appendChild(card);
+        }
+      }
+
+      // Override the legacy localStorage-based renderCatalog with server-driven one.
+      // BindCatalogControls calls renderCatalog(student); we’ll patch by setting window hook.
+      window.__renderCatalogServer = renderCatalogFromServer;
+
+      // Initial render
+      await renderCatalogFromServer();
+
+      $('#catalog-back-btn')?.addEventListener('click', () => {
+        window.location.assign('dashboard.html');
+      });
+
       return;
-    }
-
-    const users = getUsers();
-    const raw = users.find((u) => u.studentId === sess.studentId);
-    const student = raw ? migrateUserModel(raw) : null;
-
-    // Fill initial state
-    renderCatalogPills();
-    bindCatalogControls();
-    renderCatalog(student);
-
-    $('#catalog-back-btn')?.addEventListener('click', () => {
-      window.location.assign('dashboard.html');
-    });
-
-    return;
+    })();
   }
+
 
   // Admin Analytics page
   if (page === 'admin_analytics') {
-    // Minimal gate; still renders demo UI even if not in admin mode.
-    // For real app, replace with proper auth/role.
-    const adminModel = { isAdmin: getAdminMode() };
-    if (!adminModel.isAdmin) {
-      // If not admin, still render charts using demo data.
-      adminModel.isAdmin = false;
-    }
-    renderAdminDashboard(adminModel);
+    (async () => {
+      try {
+        const data = await apiFetch('/api/admin/analytics');
+        window.__adminAnalyticsData = data;
+        renderAdminDashboard({ isAdmin: !!data.isAdmin });
 
+        const logout = $('#admin-logout-btn');
+        logout?.addEventListener('click', async () => {
+          try {
+            await apiFetch('/api/auth/logout', { method: 'POST' });
+          } catch {}
+          window.location.assign('login.html');
+        });
 
-    const logout = $('#admin-logout-btn');
-    logout?.addEventListener('click', () => {
-      localStorage.removeItem(LS_SESS);
-      window.location.assign('login.html');
-    });
+        const btn = $('#admin-generate-report');
+        const btn2 = $('#admin-generate-report-2');
+        const reportHandler = () => {
+          const payload = collectAdminAnalyticsPayload();
+          generateDownloadFile(payload, `course-reg-admin-report-${new Date().toISOString().slice(0, 10)}.json`);
+        };
+        btn?.addEventListener('click', reportHandler);
+        btn2?.addEventListener('click', reportHandler);
 
-    const btn = $('#admin-generate-report');
-    const btn2 = $('#admin-generate-report-2');
-    const reportHandler = () => {
-      const payload = collectAdminAnalyticsPayload();
-      generateDownloadFile(payload, `course-reg-admin-report-${new Date().toISOString().slice(0, 10)}.json`);
-    };
-    btn?.addEventListener('click', reportHandler);
-    btn2?.addEventListener('click', reportHandler);
+        // Tabs
+        const tabBtns = document.querySelectorAll('.tab[data-trends]');
+        tabBtns.forEach((t) => {
+          t.addEventListener('click', () => {
+            tabBtns.forEach((x) => x.classList.remove('is-active'));
+            t.classList.add('is-active');
+            renderAdminTrendsChart(t.dataset.trends);
+          });
+        });
 
-    // Tabs
-    const tabBtns = document.querySelectorAll('.tab[data-trends]');
-    tabBtns.forEach((t) => {
-      t.addEventListener('click', () => {
-        tabBtns.forEach((x) => x.classList.remove('is-active'));
-        t.classList.add('is-active');
-        renderAdminTrendsChart(t.dataset.trends);
-      });
-    });
-
-    // Initial render based on active tab
-    const activeTab = document.querySelector('.tab[data-trends].is-active');
-    renderAdminTrendsChart(activeTab?.dataset?.trends || 'weekly');
-
+        // Initial render based on active tab
+        const activeTab = document.querySelector('.tab[data-trends].is-active');
+        renderAdminTrendsChart(activeTab?.dataset?.trends || 'weekly');
+      } catch (err) {
+        alert(String(err?.message || 'Failed to load admin analytics.'));
+        window.location.assign('login.html');
+      }
+    })();
     return;
   }
+
 
 })();
 

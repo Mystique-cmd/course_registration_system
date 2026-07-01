@@ -65,16 +65,23 @@ app.post('/api/auth/register', async (req, res) => {
   try {
     const studentName = normalize(req.body.studentName);
     const email = normalize(req.body.email);
+    const password = normalize(req.body.password);
     const courseName = normalize(req.body.courseName);
     const kcse = normalize(req.body.kcse);
 
-    if (!studentName || !email || !courseName || !kcse) {
+    if (!studentName || !email || !password || !courseName || !kcse) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    if (!passwordRegex.test(password)) {
+      return res.status(400).json({
+        error: 'Password must be at least 8 characters long, and contain at least one uppercase letter, one lowercase letter, one number, and one special character.'
+      });
+    }
+
     const studentId = email.split('@')[0];
-    const passwordPlain = 'default';
-    const passwordHash = await hashPassword(passwordPlain);
+    const passwordHash = await hashPassword(password);
 
     // Start transaction: create student if not exists, then insert registration.
     const conn = await pool.getConnection();

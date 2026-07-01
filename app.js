@@ -1139,6 +1139,10 @@ function renderCatalogPills() {
 }
 
 function renderCatalog(student) {
+  if (typeof window !== 'undefined' && window.__renderCatalogServer) {
+    window.__renderCatalogServer();
+    return;
+  }
   const cards = $('#catalog-cards');
   const empty = $('#catalog-empty');
   const updatedEl = $('#catalog-updated');
@@ -1219,15 +1223,13 @@ function renderCatalog(student) {
 function bindCatalogControls() {
   const avail = $('#filter-available');
   const wait = $('#filter-waitlist');
+  const sort = $('#catalog-sort');
   const reset = $('#catalog-reset-btn');
   const back = $('#catalog-back-btn');
 
   // avoid rebinding on repeated catalog entry
   if (bindCatalogControls._bound) return;
   bindCatalogControls._bound = true;
-
-
-
 
   const refresh = () => {
     const sess = getSession();
@@ -1239,10 +1241,12 @@ function bindCatalogControls() {
 
   avail?.addEventListener('change', refresh);
   wait?.addEventListener('change', refresh);
+  sort?.addEventListener('change', refresh);
 
   reset?.addEventListener('click', () => {
     $('#filter-available') && ($('#filter-available').checked = false);
     $('#filter-waitlist') && ($('#filter-waitlist').checked = false);
+    $('#catalog-sort') && ($('#catalog-sort').value = 'code');
 
     const deptWrap = $('#department-pills');
     const semWrap = $('#semester-pills');
@@ -1506,9 +1510,10 @@ function bindCatalogControls() {
 
         const filterAvailable = $('#filter-available')?.checked;
         const filterWaitlist = $('#filter-waitlist')?.checked;
+        const sortBy = $('#catalog-sort')?.value || 'code';
 
         const data = await apiFetch(
-          `/api/catalog?dept=${encodeURIComponent(selectedDept)}&sem=${encodeURIComponent(selectedSem)}&available=${filterAvailable ? 'true' : 'false'}&waitlist=${filterWaitlist ? 'true' : 'false'}`
+          `/api/catalog?dept=${encodeURIComponent(selectedDept)}&sem=${encodeURIComponent(selectedSem)}&available=${filterAvailable ? 'true' : 'false'}&waitlist=${filterWaitlist ? 'true' : 'false'}&sortBy=${encodeURIComponent(sortBy)}`
         );
 
         const cards = $('#catalog-cards');

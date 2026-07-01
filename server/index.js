@@ -312,6 +312,7 @@ app.get('/api/catalog', async (req, res) => {
     const selectedSem = req.query.sem ? String(req.query.sem) : 'All';
     const filterAvailable = req.query.available === 'true';
     const filterWaitlist = req.query.waitlist === 'true';
+    const sortBy = req.query.sortBy ? String(req.query.sortBy) : 'code';
 
     let sql = 'SELECT * FROM courses';
     const where = [];
@@ -334,6 +335,15 @@ app.get('/api/catalog', async (req, res) => {
 
     if (where.length) {
       sql += ' WHERE ' + where.join(' AND ');
+    }
+
+    // Apply sorting
+    if (sortBy === 'title') {
+      sql += ' ORDER BY title ASC';
+    } else if (sortBy === 'seats') {
+      sql += ' ORDER BY (seats_total - seats_filled) DESC';
+    } else {
+      sql += ' ORDER BY course_code ASC';
     }
 
     const [rows] = await pool.execute(sql, params);

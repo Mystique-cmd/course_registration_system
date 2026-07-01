@@ -502,6 +502,7 @@ function renderDashboard(student) {
           <div role="cell" class="td td-strong">
             <span class="course-code-badge" style="font-size:11px; background:rgba(167,139,250,0.15); color:rgba(167,139,250,0.95); padding:2px 6px; border-radius:4px; margin-right:6px; font-weight:800;">${escapeHtml(c.courseCode || 'TBA')}</span>
             ${escapeHtml(c.courseName)}
+            <div style="font-size:12px; color:#666; margin-top:4px; font-weight:normal;">${escapeHtml(c.description || 'No description available')}</div>
           </div>
           <div role="cell" class="td">${escapeHtml(c.instructor || 'TBA')}</div>
           <div role="cell" class="td">${escapeHtml(c.schedule || 'TBA')}</div>
@@ -1241,6 +1242,7 @@ function renderCatalog(student) {
         <div>
           <div class="course-catalog-code">${escapeHtml(c.courseCode)}</div>
           <div class="course-catalog-title">${escapeHtml(c.title)}</div>
+          <div style="font-size:13px; color:#666; margin-top:6px; line-height:1.4;">${escapeHtml(c.description || 'No description available')}</div>
         </div>
         <div class="cat-badges">${statusBadge}</div>
       </div>
@@ -1612,6 +1614,7 @@ function bindCatalogControls() {
               <div>
                 <div class="course-catalog-code">${escapeHtml(c.courseCode)}</div>
                 <div class="course-catalog-title">${escapeHtml(c.title)}</div>
+                <div style="font-size:13px; color:#666; margin-top:6px; line-height:1.4;">${escapeHtml(c.description || 'No description available')}</div>
               </div>
               <div class="cat-badges">${statusBadge}</div>
             </div>

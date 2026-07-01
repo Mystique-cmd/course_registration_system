@@ -219,6 +219,7 @@ app.get('/api/students/me', requireLogin, async (req, res) => {
       `SELECT
         c.title AS courseName,
         c.course_code AS courseCode,
+        c.description,
         c.instructor AS instructor,
         c.department AS department,
         c.semester AS semester,
@@ -237,6 +238,7 @@ app.get('/api/students/me', requireLogin, async (req, res) => {
       courseName: r.courseName,
       courseCode: r.courseCode,
       title: r.courseName,
+      description: r.description || 'No description available',
       instructor: r.instructor,
       schedule: getScheduleFromTitle(r.courseName),
       location: 'TBD',
@@ -372,6 +374,7 @@ app.get('/api/catalog', async (req, res) => {
       courses: rows.map((c) => ({
         courseCode: c.course_code,
         title: c.title,
+        description: c.description || 'No description available',
         instructor: c.instructor,
         enrollmentStatus: c.enrollment_status,
         seatsFilled: c.seats_filled,

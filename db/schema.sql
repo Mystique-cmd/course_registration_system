@@ -43,6 +43,7 @@ CREATE TABLE courses (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   course_code VARCHAR(32) NOT NULL,
   title VARCHAR(200) NOT NULL,
+  description TEXT NULL,
   instructor VARCHAR(200) NOT NULL,
 
   department VARCHAR(120) NOT NULL,
@@ -147,14 +148,14 @@ CREATE TABLE notifications (
 -- ============================
 -- Insert only if courses table is empty.
 INSERT IGNORE INTO courses
-  (course_code, title, instructor, department, semester, enrollment_status, seats_filled, seats_total, waitlist_count, waitlist_position_info, test_date_offset_days)
+  (course_code, title, description, instructor, department, semester, enrollment_status, seats_filled, seats_total, waitlist_count, waitlist_position_info, test_date_offset_days)
 VALUES
-  ('CS 101', 'Intro to Programming', 'Dr. A. Mwangi', 'Computer Science', 'Semester 1', 'Open', 38, 50, 0, '', 4),
-  ('CS 201', 'Data Structures', 'Prof. J. Otieno', 'Computer Science', 'Semester 1', 'Waitlist', 60, 60, 17, 'Positions 1–17 available', 10),
-  ('IT 120', 'IT Fundamentals', 'Dr. N. Wanjiku', 'IT', 'Semester 1', 'Open', 24, 40, 0, '', 8),
-  ('BIT 210', 'Business & Technology', 'Prof. K. Wambui', 'Business IT', 'Semester 2', 'Open', 29, 45, 0, '', 25),
-  ('CS 305', 'Advanced React Patterns', 'Dr. S. Njoroge', 'Computer Science', 'Semester 2', 'Waitlist', 55, 55, 9, 'Positions 1–9 available', 18),
-  ('ENG 110', 'Engineering Fundamentals', 'Dr. P. Kimani', 'Engineering', 'Semester 2', 'Open', 18, 30, 0, '', 8);
+  ('CS 101', 'Intro to Programming', 'Learn fundamental programming concepts including variables, loops, conditionals, and functions. Build your foundation in software development with practical coding exercises.', 'Dr. A. Mwangi', 'Computer Science', 'Semester 1', 'Open', 38, 50, 0, '', 4),
+  ('CS 201', 'Data Structures', 'Explore essential data structures including arrays, linked lists, stacks, queues, and trees. Understand how to choose the right structure for optimal performance.', 'Prof. J. Otieno', 'Computer Science', 'Semester 1', 'Waitlist', 60, 60, 17, 'Positions 1–17 available', 10),
+  ('IT 120', 'IT Fundamentals', 'Master foundational IT concepts covering computer systems, networking basics, databases, and security. Ideal for those starting their IT journey.', 'Dr. N. Wanjiku', 'IT', 'Semester 1', 'Open', 24, 40, 0, '', 8),
+  ('BIT 210', 'Business & Technology', 'Examine the intersection of business strategy and technology implementation. Learn how enterprises leverage IT for competitive advantage.', 'Prof. K. Wambui', 'Business IT', 'Semester 2', 'Open', 29, 45, 0, '', 25),
+  ('CS 305', 'Advanced React Patterns', 'Deep dive into advanced React patterns including hooks, context API, performance optimization, and state management. Build scalable web applications.', 'Dr. S. Njoroge', 'Computer Science', 'Semester 2', 'Waitlist', 55, 55, 9, 'Positions 1–9 available', 18),
+  ('ENG 110', 'Engineering Fundamentals', 'Introduction to engineering principles, problem-solving methodologies, and technical design. Prepare for advanced engineering courses.', 'Dr. P. Kimani', 'Engineering', 'Semester 2', 'Open', 18, 30, 0, '', 8);
 
 -- Done.
 

@@ -501,12 +501,11 @@ app.post('/api/registrations/drop', requireLogin, async (req, res) => {
 
       let regId = null;
       let courseId = null;
-      let courseName = null;
 
       if (courseCode) {
         // Drop specific course
         const [courseRows] = await conn.execute(
-          'SELECT id, title FROM courses WHERE course_code = ? LIMIT 1',
+          'SELECT id FROM courses WHERE course_code = ? LIMIT 1',
           [courseCode]
         );
         if (!courseRows.length) {
@@ -514,7 +513,6 @@ app.post('/api/registrations/drop', requireLogin, async (req, res) => {
           return res.status(404).json({ error: 'Course not found' });
         }
         courseId = courseRows[0].id;
-        courseName = courseRows[0].title;
 
         const [regRows] = await conn.execute(
           'SELECT id FROM registrations WHERE student_id_fk = ? AND course_id_fk = ? LIMIT 1',
@@ -528,7 +526,7 @@ app.post('/api/registrations/drop', requireLogin, async (req, res) => {
       } else {
         // Fallback: Drop most recently registered course
         const [regRows] = await conn.execute(
-          'SELECT r.id, r.course_id_fk, c.title FROM registrations r JOIN courses c ON r.course_id_fk = c.id WHERE r.student_id_fk = ? ORDER BY r.id DESC LIMIT 1',
+          'SELECT id, course_id_fk FROM registrations WHERE student_id_fk = ? ORDER BY id DESC LIMIT 1',
           [studentPk]
         );
         if (!regRows.length) {
@@ -537,72 +535,19 @@ app.post('/api/registrations/drop', requireLogin, async (req, res) => {
         }
         regId = regRows[0].id;
         courseId = regRows[0].course_id_fk;
-        courseName = regRows[0].title;
       }
 
       // Delete registration
       await conn.execute('DELETE FROM registrations WHERE id = ?', [regId]);
 
-      // Get current course info before updating
-      const [courseInfoRows] = await conn.execute(
-        'SELECT seats_filled, seats_total, waitlist_count, enrollment_status FROM courses WHERE id = ? LIMIT 1',
-        [courseId]
-      );
-      const courseInfo = courseInfoRows[0] || {};
-
-      // Decrement seats_filled and adjust enrollment status
+      // Decrement seats_filled and set status to Open
       await conn.execute(
         'UPDATE courses SET seats_filled = GREATEST(0, seats_filled - 1), enrollment_status = "Open" WHERE id = ?',
         [courseId]
       );
 
-      // Save notification to database: student successfully dropped course
-      const notificationMsg = `You have successfully dropped "${courseName}".`;
-      await conn.execute(
-        'INSERT INTO notifications (student_id_fk, type, message) VALUES (?, ?, ?)',
-        [studentPk, 'course', notificationMsg]
-      );
-
-      // Check if there are waitlisted students to promote
-      if (courseInfo.waitlist_count > 0) {
-        const [waitlistRows] = await conn.execute(
-          'SELECT id, student_id_fk FROM waitlist_entries WHERE course_id_fk = ? ORDER BY position ASC LIMIT 1',
-          [courseId]
-        );
-        
-        if (waitlistRows.length > 0) {
-          const waitlistedStudent = waitlistRows[0];
-          const waitlistedStudentId = waitlistedStudent.student_id_fk;
-          
-          // Move waitlisted student to registered
-          await conn.execute(
-            'INSERT INTO registrations (student_id_fk, course_id_fk, kcse_grade) VALUES (?, ?, ?)',
-            [waitlistedStudentId, courseId, 'A']
-          );
-          
-          // Remove from waitlist
-          await conn.execute(
-            'DELETE FROM waitlist_entries WHERE id = ?',
-            [waitlistedStudent.id]
-          );
-          
-          // Update course: increment seats_filled and decrement waitlist_count
-          await conn.execute(
-            'UPDATE courses SET seats_filled = seats_filled + 1, waitlist_count = GREATEST(0, waitlist_count - 1) WHERE id = ?',
-            [courseId]
-          );
-          
-          // Notify the promoted student
-          const promotionMsg = `Great news! A seat opened in "${courseName}". You have been promoted from the waitlist and are now registered.`;
-          await conn.execute(
-            'INSERT INTO notifications (student_id_fk, type, message) VALUES (?, ?, ?)',
-            [waitlistedStudentId, 'course', promotionMsg]
-          );
-        }
-      }
-
       await conn.commit();
-      return res.json({ ok: true, dropped: regId, courseName });
+      return res.json({ ok: true, dropped: regId });
     } catch (err) {
       await conn.rollback();
       throw err;

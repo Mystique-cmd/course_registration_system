@@ -50,6 +50,26 @@ function normalize(s) {
   return String(s ?? '').trim();
 }
 
+
+function calculateTuition(courseCount, semester = 'Semester 1') {
+  // Tuition calculation: Base fee + per-course fee, capped at max
+  const baseFee = 5000.00;
+  const perCourseFee = 2500.00;
+  const maxTuition = 17500.00;
+  
+  const totalTuition = baseFee + (courseCount * perCourseFee);
+  return Math.min(totalTuition, maxTuition);
+}
+
+function getStudentCurrentSemester(registeredCourses) {
+  // Get current semester from registered courses
+  if (registeredCourses && registeredCourses.length > 0) {
+    return registeredCourses[0].semester || 'Semester 1';
+  }
+  return 'Semester 1';
+}
+
+
 function pad2(n) {
   return String(n).padStart(2, '0');
 }
@@ -654,6 +674,41 @@ app.post('/api/registrations/drop', requireLogin, async (req, res) => {
         'INSERT INTO drop_logs (student_id_fk, course_id_fk, reason) VALUES (?, ?, ?)',
         [studentPk, courseId, 'Student-initiated drop']
       );
+
+
+
+      // Calculate and record tuition refund if applicable
+      const [coursesBefore] = await conn.execute(
+        'SELECT COUNT(*) AS count FROM registrations WHERE student_id_fk = ? AND created_at > DATE_SUB(NOW(), INTERVAL 1 MONTH)',
+        [studentPk]
+      );
+      
+      // After drop, recalculate student tuition
+      const [semesterRows] = await conn.execute(
+        'SELECT c.semester FROM registrations r JOIN courses c ON r.course_id_fk = c.id WHERE r.student_id_fk = ? ORDER BY r.created_at DESC LIMIT 1',
+        [studentPk]
+      );
+      
+      const currentSemester = (semesterRows && semesterRows.length > 0) ? semesterRows[0].semester : 'Semester 1';
+      const tuitionBefore = calculateTuition(currentCourseCount, currentSemester);
+      const tuitionAfter = calculateTuition(coursesAfterDrop, currentSemester);
+      const tuitionRefund = tuitionBefore - tuitionAfter;
+
+      // Record billing transaction for refund
+      if (tuitionRefund > 0) {
+        await conn.execute(
+          'INSERT INTO student_billing (student_id_fk, course_id_fk, semester, amount, status, transaction_type) VALUES (?, ?, ?, ?, ?, ?)',
+          [studentPk, courseId, currentSemester, tuitionRefund, 'Credited', 'Refund']
+        );
+
+        // Notify student of refund
+        const refundMsg = `Tuition refund of ${tuitionRefund.toFixed(2)} has been credited to your account for dropping "${courseName}".`;
+        await conn.execute(
+          'INSERT INTO notifications (student_id_fk, type, message) VALUES (?, ?, ?)',
+          [studentPk, 'payment', refundMsg]
+        );
+      }
+
 
       // Check if there are waitlisted students to promote
       if (courseInfo.waitlist_count > 0) {

@@ -193,3 +193,49 @@ CREATE TABLE IF NOT EXISTS drop_logs (
 -- Update seed data for courses to include drop deadline info
 UPDATE courses SET drop_deadline_days = 14 WHERE course_code IN ('CS 101', 'CS 201', 'IT 120');
 UPDATE courses SET drop_deadline_days = 21 WHERE course_code IN ('BIT 210', 'CS 305', 'ENG 110');
+
+-- ============================
+-- Tuition and Billing
+-- ============================
+
+CREATE TABLE IF NOT EXISTS tuition_policies (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  semester VARCHAR(60) NOT NULL,
+  base_fee DECIMAL(10, 2) NOT NULL,
+  per_course_fee DECIMAL(10, 2) NOT NULL,
+  max_courses INT NOT NULL DEFAULT 5,
+  max_tuition DECIMAL(10, 2) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_tuition_semester (semester)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS student_billing (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  student_id_fk BIGINT UNSIGNED NOT NULL,
+  course_id_fk BIGINT UNSIGNED NOT NULL,
+  semester VARCHAR(60) NOT NULL,
+  amount DECIMAL(10, 2) NOT NULL,
+  status ENUM('Pending','Paid','Credited') DEFAULT 'Pending',
+  transaction_type ENUM('Charge','Refund','Credit') DEFAULT 'Charge',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  
+  PRIMARY KEY (id),
+  KEY idx_billing_student (student_id_fk),
+  KEY idx_billing_course (course_id_fk),
+  
+  CONSTRAINT fk_billing_student
+    FOREIGN KEY (student_id_fk) REFERENCES students(id)
+    ON DELETE CASCADE,
+  CONSTRAINT fk_billing_course
+    FOREIGN KEY (course_id_fk) REFERENCES courses(id)
+    ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- Seed tuition policies
+INSERT IGNORE INTO tuition_policies (semester, base_fee, per_course_fee, max_courses, max_tuition) VALUES
+  ('Semester 1', 5000.00, 2500.00, 5, 17500.00),
+  ('Semester 2', 5000.00, 2500.00, 5, 17500.00);
+
+-- Done.

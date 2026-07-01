@@ -1278,21 +1278,48 @@ function bindCatalogControls() {
       if (registerInline) registerInline.hidden = true;
     });
 
-    $('#login-form')?.addEventListener('submit', async (e) => {
+    const loginMessageEl = $('#login-message');
+    const loginForm = $('#login-form');
+
+    loginForm?.querySelectorAll('input').forEach(input => {
+      input.addEventListener('input', () => {
+        if (loginMessageEl) loginMessageEl.hidden = true;
+      });
+    });
+
+    loginForm?.addEventListener('submit', async (e) => {
       e.preventDefault();
       const studentId = normalize(e.target.studentId.value);
       const password = normalize(e.target.password.value);
 
-      if (!studentId || !password) return;
+      if (!studentId || !password) {
+        if (loginMessageEl) {
+          loginMessageEl.textContent = 'Please enter both student ID and password.';
+          loginMessageEl.className = 'form-message error-msg';
+          loginMessageEl.hidden = false;
+        }
+        return;
+      }
 
       try {
         await apiFetch('/api/auth/login', {
           method: 'POST',
           body: JSON.stringify({ studentId, password }),
         });
-        window.location.assign('dashboard.html');
+        if (loginMessageEl) {
+          loginMessageEl.textContent = 'Login successful! Redirecting to dashboard...';
+          loginMessageEl.className = 'form-message success-msg';
+          loginMessageEl.hidden = false;
+        }
+        setTimeout(() => {
+          window.location.assign('dashboard.html');
+        }, 1500);
       } catch (err) {
-        alert(String(err?.message || 'Invalid Student ID or Password.'));
+        if (loginMessageEl) {
+          loginMessageEl.textContent = String(err?.message || 'Invalid Student ID or Password.');
+          loginMessageEl.className = 'form-message error-msg';
+          loginMessageEl.hidden = false;
+        }
       }
     });
 
@@ -1302,7 +1329,16 @@ function bindCatalogControls() {
       alert('Password reset is not implemented in this step.');
     });
 
-    $('#register-form')?.addEventListener('submit', async (e) => {
+    const registerMessageEl = $('#register-message');
+    const registerForm = $('#register-form');
+
+    registerForm?.querySelectorAll('input, select').forEach(input => {
+      input.addEventListener('input', () => {
+        if (registerMessageEl) registerMessageEl.hidden = true;
+      });
+    });
+
+    registerForm?.addEventListener('submit', async (e) => {
       e.preventDefault();
 
       const studentName = normalize(e.target.studentName.value);
@@ -1311,11 +1347,22 @@ function bindCatalogControls() {
       const courseName = normalize(e.target.courseName.value);
       const kcse = normalize(e.target.kcse.value);
 
-      if (!studentName || !email || !password || !courseName || !kcse) return;
+      if (!studentName || !email || !password || !courseName || !kcse) {
+        if (registerMessageEl) {
+          registerMessageEl.textContent = 'Please fill out all registration fields.';
+          registerMessageEl.className = 'form-message error-msg';
+          registerMessageEl.hidden = false;
+        }
+        return;
+      }
 
       const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
       if (!passwordRegex.test(password)) {
-        alert('Password must be at least 8 characters long, and contain at least one uppercase letter, one lowercase letter, one number, and one special character.');
+        if (registerMessageEl) {
+          registerMessageEl.textContent = 'Password must be at least 8 characters long, and contain at least one uppercase letter, one lowercase letter, one number, and one special character.';
+          registerMessageEl.className = 'form-message error-msg';
+          registerMessageEl.hidden = false;
+        }
         return;
       }
 
@@ -1324,9 +1371,20 @@ function bindCatalogControls() {
           method: 'POST',
           body: JSON.stringify({ studentName, email, password, courseName, kcse }),
         });
-        window.location.assign('dashboard.html');
+        if (registerMessageEl) {
+          registerMessageEl.textContent = 'Registration successful! Redirecting to dashboard...';
+          registerMessageEl.className = 'form-message success-msg';
+          registerMessageEl.hidden = false;
+        }
+        setTimeout(() => {
+          window.location.assign('dashboard.html');
+        }, 1500);
       } catch (err) {
-        alert(String(err?.message || 'Registration failed.'));
+        if (registerMessageEl) {
+          registerMessageEl.textContent = String(err?.message || 'Registration failed.');
+          registerMessageEl.className = 'form-message error-msg';
+          registerMessageEl.hidden = false;
+        }
       }
     });
 

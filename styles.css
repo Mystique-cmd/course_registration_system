@@ -639,5 +639,23 @@ body{
 }
 .cat-empty.show{display:block;}
 
+.form-message {
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.4;
+  margin-bottom: 8px;
+}
+.form-message.error-msg {
+  background: rgba(251, 113, 133, 0.15);
+  border: 1px solid rgba(251, 113, 133, 0.4);
+  color: rgba(251, 113, 133, 0.95);
+}
+.form-message.success-msg {
+  background: rgba(134, 239, 172, 0.15);
+  border: 1px solid rgba(134, 239, 172, 0.4);
+  color: rgba(134, 239, 172, 0.95);
+}
+
 
 

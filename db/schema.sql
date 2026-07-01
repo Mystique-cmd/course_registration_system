@@ -158,3 +158,38 @@ VALUES
 
 -- Done.
 
+-- Course Registration System - Enhanced Database Schema
+-- Adds eligibility validation columns for course drop functionality
+
+-- Update students table with academic and financial status
+ALTER TABLE students ADD COLUMN IF NOT EXISTS academic_status ENUM('Good','Probation','Suspended') DEFAULT 'Good';
+ALTER TABLE students ADD COLUMN IF NOT EXISTS financial_hold BOOLEAN DEFAULT FALSE;
+ALTER TABLE students ADD COLUMN IF NOT EXISTS minimum_courses INT DEFAULT 1;
+
+-- Update courses table with drop restrictions
+ALTER TABLE courses ADD COLUMN IF NOT EXISTS drop_allowed BOOLEAN DEFAULT TRUE;
+ALTER TABLE courses ADD COLUMN IF NOT EXISTS drop_deadline_days INT DEFAULT 14;
+
+-- Create drop logs table for audit trail
+CREATE TABLE IF NOT EXISTS drop_logs (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  student_id_fk BIGINT UNSIGNED NOT NULL,
+  course_id_fk BIGINT UNSIGNED NOT NULL,
+  drop_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  reason VARCHAR(255),
+  
+  PRIMARY KEY (id),
+  KEY idx_drop_student (student_id_fk),
+  KEY idx_drop_course (course_id_fk),
+  
+  CONSTRAINT fk_drop_student
+    FOREIGN KEY (student_id_fk) REFERENCES students(id)
+    ON DELETE CASCADE,
+  CONSTRAINT fk_drop_course
+    FOREIGN KEY (course_id_fk) REFERENCES courses(id)
+    ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- Update seed data for courses to include drop deadline info
+UPDATE courses SET drop_deadline_days = 14 WHERE course_code IN ('CS 101', 'CS 201', 'IT 120');
+UPDATE courses SET drop_deadline_days = 21 WHERE course_code IN ('BIT 210', 'CS 305', 'ENG 110');

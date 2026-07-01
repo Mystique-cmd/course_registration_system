@@ -489,33 +489,76 @@ app.post('/api/registrations/drop', requireLogin, async (req, res) => {
     try {
       await conn.beginTransaction();
 
+      // 1. FETCH STUDENT - with eligibility info
       const [studentRows] = await conn.execute(
-        'SELECT id FROM students WHERE student_id = ? LIMIT 1',
+        'SELECT id, academic_status, financial_hold, minimum_courses FROM students WHERE student_id = ? LIMIT 1',
         [studentId]
       );
       if (!studentRows.length) {
         await conn.rollback();
         return res.status(404).json({ error: 'Student not found' });
       }
-      const studentPk = studentRows[0].id;
+      const student = studentRows[0];
+      const studentPk = student.id;
+
+      // 2. VALIDATE ELIGIBILITY: Academic Standing
+      if (student.academic_status === 'Suspended') {
+        await conn.rollback();
+        return res.status(403).json({ 
+          error: 'Eligibility check failed: Your account is suspended. You cannot drop courses at this time.' 
+        });
+      }
+
+      // 3. VALIDATE ELIGIBILITY: Financial Hold
+      if (student.financial_hold) {
+        await conn.rollback();
+        return res.status(403).json({ 
+          error: 'Eligibility check failed: You have a financial hold. Please resolve it before dropping courses.' 
+        });
+      }
 
       let regId = null;
       let courseId = null;
       let courseName = null;
+      let courseCreatedAt = null;
 
       if (courseCode) {
         // Drop specific course
         const [courseRows] = await conn.execute(
-          'SELECT id, title FROM courses WHERE course_code = ? LIMIT 1',
+          'SELECT id, title, created_at, drop_allowed, drop_deadline_days FROM courses WHERE course_code = ? LIMIT 1',
           [courseCode]
         );
         if (!courseRows.length) {
           await conn.rollback();
           return res.status(404).json({ error: 'Course not found' });
         }
-        courseId = courseRows[0].id;
-        courseName = courseRows[0].title;
+        const course = courseRows[0];
+        courseId = course.id;
+        courseName = course.title;
+        courseCreatedAt = course.created_at;
 
+        // 4. VALIDATE ELIGIBILITY: Course-specific drop restrictions
+        if (!course.drop_allowed) {
+          await conn.rollback();
+          return res.status(403).json({ 
+            error: 'Eligibility check failed: This course cannot be dropped after the add/drop period.' 
+          });
+        }
+
+        // 5. VALIDATE ELIGIBILITY: Drop deadline
+        if (course.drop_deadline_days > 0) {
+          const courseDate = new Date(courseCreatedAt);
+          const dropDeadline = new Date(courseDate.getTime() + course.drop_deadline_days * 24 * 60 * 60 * 1000);
+          const now = new Date();
+          if (now > dropDeadline) {
+            await conn.rollback();
+            return res.status(403).json({ 
+              error: `Eligibility check failed: The drop deadline for this course has passed (deadline was ${dropDeadline.toDateString()}).` 
+            });
+          }
+        }
+
+        // Check if student is registered
         const [regRows] = await conn.execute(
           'SELECT id FROM registrations WHERE student_id_fk = ? AND course_id_fk = ? LIMIT 1',
           [studentPk, courseId]
@@ -528,17 +571,60 @@ app.post('/api/registrations/drop', requireLogin, async (req, res) => {
       } else {
         // Fallback: Drop most recently registered course
         const [regRows] = await conn.execute(
-          'SELECT r.id, r.course_id_fk, c.title FROM registrations r JOIN courses c ON r.course_id_fk = c.id WHERE r.student_id_fk = ? ORDER BY r.id DESC LIMIT 1',
+          `SELECT r.id, r.course_id_fk, c.title, c.created_at, c.drop_allowed, c.drop_deadline_days 
+           FROM registrations r 
+           JOIN courses c ON r.course_id_fk = c.id 
+           WHERE r.student_id_fk = ? 
+           ORDER BY r.id DESC LIMIT 1`,
           [studentPk]
         );
         if (!regRows.length) {
           await conn.rollback();
           return res.json({ ok: true, dropped: null });
         }
-        regId = regRows[0].id;
-        courseId = regRows[0].course_id_fk;
-        courseName = regRows[0].title;
+        const reg = regRows[0];
+        regId = reg.id;
+        courseId = reg.course_id_fk;
+        courseName = reg.title;
+        courseCreatedAt = reg.created_at;
+
+        // Validate drop eligibility for fallback case
+        if (!reg.drop_allowed) {
+          await conn.rollback();
+          return res.status(403).json({ 
+            error: 'Eligibility check failed: This course cannot be dropped after the add/drop period.' 
+          });
+        }
+
+        if (reg.drop_deadline_days > 0) {
+          const courseDate = new Date(courseCreatedAt);
+          const dropDeadline = new Date(courseDate.getTime() + reg.drop_deadline_days * 24 * 60 * 60 * 1000);
+          const now = new Date();
+          if (now > dropDeadline) {
+            await conn.rollback();
+            return res.status(403).json({ 
+              error: `Eligibility check failed: The drop deadline for this course has passed (deadline was ${dropDeadline.toDateString()}).` 
+            });
+          }
+        }
       }
+
+      // 6. VALIDATE ELIGIBILITY: Minimum course load
+      const [allRegsCount] = await conn.execute(
+        'SELECT COUNT(*) AS count FROM registrations WHERE student_id_fk = ?',
+        [studentPk]
+      );
+      const currentCourseCount = allRegsCount[0].count;
+      const coursesAfterDrop = currentCourseCount - 1;
+
+      if (coursesAfterDrop < student.minimum_courses) {
+        await conn.rollback();
+        return res.status(403).json({ 
+          error: `Eligibility check failed: You must maintain a minimum of ${student.minimum_courses} course(s). Currently registered: ${currentCourseCount}.` 
+        });
+      }
+
+      // ===== ALL VALIDATIONS PASSED - Proceed with drop =====
 
       // Delete registration
       await conn.execute('DELETE FROM registrations WHERE id = ?', [regId]);
@@ -561,6 +647,12 @@ app.post('/api/registrations/drop', requireLogin, async (req, res) => {
       await conn.execute(
         'INSERT INTO notifications (student_id_fk, type, message) VALUES (?, ?, ?)',
         [studentPk, 'course', notificationMsg]
+      );
+
+      // Log drop transaction for audit trail
+      await conn.execute(
+        'INSERT INTO drop_logs (student_id_fk, course_id_fk, reason) VALUES (?, ?, ?)',
+        [studentPk, courseId, 'Student-initiated drop']
       );
 
       // Check if there are waitlisted students to promote
@@ -598,6 +690,12 @@ app.post('/api/registrations/drop', requireLogin, async (req, res) => {
             'INSERT INTO notifications (student_id_fk, type, message) VALUES (?, ?, ?)',
             [waitlistedStudentId, 'course', promotionMsg]
           );
+
+          // Log promotion for audit trail
+          await conn.execute(
+            'INSERT INTO drop_logs (student_id_fk, course_id_fk, reason) VALUES (?, ?, ?)',
+            [waitlistedStudentId, courseId, 'Promoted from waitlist']
+          );
         }
       }
 
@@ -614,6 +712,7 @@ app.post('/api/registrations/drop', requireLogin, async (req, res) => {
     return res.status(500).json({ error: 'Server error' });
   }
 });
+
 
 // ===== Admin analytics =====
 app.get('/api/admin/analytics', requireLogin, async (req, res) => {

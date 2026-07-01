@@ -369,6 +369,107 @@ app.get('/api/catalog', async (req, res) => {
 });
 
 // ===== Registrations =====
+app.post('/api/registrations/add', requireLogin, async (req, res) => {
+  try {
+    const studentId = req.session.studentId;
+    const courseCode = normalize(req.body.courseCode);
+
+    if (!courseCode) {
+      return res.status(400).json({ error: 'Missing courseCode' });
+    }
+
+    const conn = await pool.getConnection();
+    try {
+      await conn.beginTransaction();
+
+      // 1. Get student primary key ID
+      const [studentRows] = await conn.execute(
+        'SELECT id FROM students WHERE student_id = ? LIMIT 1',
+        [studentId]
+      );
+      if (!studentRows.length) {
+        await conn.rollback();
+        return res.status(404).json({ error: 'Student not found' });
+      }
+      const studentPkId = studentRows[0].id;
+
+      // 2. Get course details
+      const [courseRows] = await conn.execute(
+        'SELECT id, enrollment_status, seats_filled, seats_total, waitlist_count FROM courses WHERE course_code = ? LIMIT 1',
+        [courseCode]
+      );
+      if (!courseRows.length) {
+        await conn.rollback();
+        return res.status(404).json({ error: 'Course not found' });
+      }
+      const course = courseRows[0];
+
+      // 3. Check if student is already registered in registrations
+      const [existingReg] = await conn.execute(
+        'SELECT id FROM registrations WHERE student_id_fk = ? AND course_id_fk = ? LIMIT 1',
+        [studentPkId, course.id]
+      );
+      if (existingReg.length) {
+        await conn.rollback();
+        return res.status(400).json({ error: 'Already registered for this course' });
+      }
+
+      // 4. Check if student is already waitlisted
+      const [existingWl] = await conn.execute(
+        'SELECT id FROM waitlist_entries WHERE student_id_fk = ? AND course_id_fk = ? LIMIT 1',
+        [studentPkId, course.id]
+      );
+      if (existingWl.length) {
+        await conn.rollback();
+        return res.status(400).json({ error: 'Already waitlisted for this course' });
+      }
+
+      // 5. Register or Waitlist
+      if (course.seats_filled < course.seats_total) {
+        // Register: insert registration, increment seats_filled
+        await conn.execute(
+          'INSERT INTO registrations (student_id_fk, course_id_fk, kcse_grade) VALUES (?, ?, ?)',
+          [studentPkId, course.id, 'B'] // Default KCSE grade for new catalog registrations
+        );
+        await conn.execute(
+          'UPDATE courses SET seats_filled = seats_filled + 1 WHERE id = ?',
+          [course.id]
+        );
+        
+        // Update enrollment status if now full
+        if (course.seats_filled + 1 >= course.seats_total) {
+          await conn.execute(
+            'UPDATE courses SET enrollment_status = "Waitlist" WHERE id = ?',
+            [course.id]
+          );
+        }
+      } else {
+        // Waitlist: insert into waitlist_entries, increment waitlist_count
+        const position = course.waitlist_count + 1;
+        await conn.execute(
+          'INSERT INTO waitlist_entries (student_id_fk, course_id_fk, position, probability) VALUES (?, ?, ?, ?)',
+          [studentPkId, course.id, position, 0.5]
+        );
+        await conn.execute(
+          'UPDATE courses SET waitlist_count = waitlist_count + 1 WHERE id = ?',
+          [course.id]
+        );
+      }
+
+      await conn.commit();
+      return res.json({ ok: true });
+    } catch (e) {
+      await conn.rollback();
+      throw e;
+    } finally {
+      conn.release();
+    }
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
 app.post('/api/registrations/drop', requireLogin, async (req, res) => {
   try {
     const studentId = req.session.studentId;

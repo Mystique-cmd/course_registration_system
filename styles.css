@@ -657,5 +657,13 @@ body{
   color: rgba(134, 239, 172, 0.95);
 }
 
+.btn:disabled {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: var(--muted) !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+}
+
 
 

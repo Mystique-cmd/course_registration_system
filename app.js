@@ -1527,6 +1527,9 @@ function bindCatalogControls() {
         const student = await apiFetch('/api/students/me');
         if (creditsEl) creditsEl.textContent = String(student.creditsEarned || 0);
 
+        const registeredCourseCodes = (student.registeredCourses || []).map((rc) => rc.courseCode);
+        const waitlistedCourseNames = (student.waitlist || []).map((wc) => wc.courseName);
+
         const catalog = data.courses || [];
         cards.innerHTML = '';
 
@@ -1544,6 +1547,16 @@ function bindCatalogControls() {
           const waitInfo = c.enrollmentStatus === 'Waitlist'
             ? `Waitlist: ${escapeHtml(c.waitlistPositionInfo || 'Join to view position')}`
             : `Seats filled: ${escapeHtml(String(c.seatsFilled))}/${escapeHtml(String(c.seatsTotal))}`;
+
+          let buttonHtml = '';
+          if (registeredCourseCodes.includes(c.courseCode)) {
+            buttonHtml = `<button class="btn" style="margin-top:14px; width:100%;" disabled>Already Registered</button>`;
+          } else if (waitlistedCourseNames.includes(c.title)) {
+            buttonHtml = `<button class="btn" style="margin-top:14px; width:100%;" disabled>Already Waitlisted</button>`;
+          } else {
+            const btnText = c.enrollmentStatus === 'Open' ? 'Register for Course' : 'Join Waitlist';
+            buttonHtml = `<button class="btn btn-register" style="margin-top:14px; width:100%;">${btnText}</button>`;
+          }
 
           const card = document.createElement('div');
           card.className = 'course-catalog-card';
@@ -1568,7 +1581,29 @@ function bindCatalogControls() {
               <span class="badge-mini">Seats: ${escapeHtml(String(c.seatsFilled))}/${escapeHtml(String(c.seatsTotal))}</span>
               ${c.enrollmentStatus === 'Waitlist' ? `<span class="badge-mini">Waitlist: ${escapeHtml(String(c.waitlistCount || 0))}</span>` : ''}
             </div>
+
+            <div style="margin-top:4px;">
+              ${buttonHtml}
+            </div>
           `;
+
+          const regBtn = card.querySelector('.btn-register');
+          if (regBtn) {
+            regBtn.addEventListener('click', async () => {
+              try {
+                await apiFetch('/api/registrations/add', {
+                  method: 'POST',
+                  body: JSON.stringify({ courseCode: c.courseCode }),
+                });
+                alert(c.enrollmentStatus === 'Open'
+                  ? `Successfully registered for ${c.title}!`
+                  : `Successfully joined waitlist for ${c.title}!`);
+                await renderCatalogFromServer();
+              } catch (err) {
+                alert(String(err?.message || 'Registration failed.'));
+              }
+            });
+          }
 
           cards.appendChild(card);
         }

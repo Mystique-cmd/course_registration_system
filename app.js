@@ -499,11 +499,52 @@ function renderDashboard(student) {
         row.className = 'trow';
         row.setAttribute('role', 'row');
         row.innerHTML = `
-          <div role="cell" class="td td-strong">${escapeHtml(c.courseName)}</div>
+          <div role="cell" class="td td-strong">
+            <span class="course-code-badge" style="font-size:11px; background:rgba(167,139,250,0.15); color:rgba(167,139,250,0.95); padding:2px 6px; border-radius:4px; margin-right:6px; font-weight:800;">${escapeHtml(c.courseCode || 'TBA')}</span>
+            ${escapeHtml(c.courseName)}
+          </div>
           <div role="cell" class="td">${escapeHtml(c.instructor || 'TBA')}</div>
           <div role="cell" class="td">${escapeHtml(c.schedule || 'TBA')}</div>
           <div role="cell" class="td">${escapeHtml(c.location || 'TBA')}</div>
+          <div role="cell" class="td" style="display:flex; align-items:center;">
+            <button class="btn btn-danger btn-drop" style="margin:0; padding:6px 10px; font-size:11px; border-radius:8px; width:auto;" data-code="${escapeHtml(c.courseCode)}">Drop</button>
+          </div>
         `;
+
+        const dropBtn = row.querySelector('.btn-drop');
+        if (dropBtn) {
+          dropBtn.addEventListener('click', async () => {
+            const confirmDrop = confirm(`Are you sure you want to drop "${c.courseName}"?`);
+            if (!confirmDrop) return;
+
+            try {
+              await apiFetch('/api/registrations/drop', {
+                method: 'POST',
+                body: JSON.stringify({ courseCode: c.courseCode }),
+              });
+              alert(`Successfully dropped ${c.courseName}!`);
+              const updated = await apiFetch('/api/students/me');
+              const migratedAfter = migrateUserModel({
+                ...updated,
+                registrations: (updated.registeredCourses || []).map((rc) => ({
+                  courseName: rc.courseName,
+                  kcseGrade: rc.kcseGrade,
+                })),
+                registeredCourses: updated.registeredCourses,
+                waitlist: updated.waitlist,
+                notifications: updated.notifications,
+                creditsEarned: updated.creditsEarned,
+                creditsRequired: updated.creditsRequired,
+                studentName: updated.studentName,
+                program: updated.program,
+              });
+              renderDashboard(migratedAfter);
+            } catch (err) {
+              alert(String(err?.message || 'Drop course failed.'));
+            }
+          });
+        }
+
         coursesTable.appendChild(row);
       }
     }
@@ -1436,8 +1477,12 @@ function bindCatalogControls() {
         });
 
         dropBtn?.addEventListener('click', async () => {
+          const confirmDrop = confirm('Are you sure you want to drop your most recently registered course?');
+          if (!confirmDrop) return;
+
           try {
             await apiFetch('/api/registrations/drop', { method: 'POST' });
+            alert('Successfully dropped the most recently registered course!');
             const updated = await apiFetch('/api/students/me');
             const migratedAfter = migrateUserModel({
               ...updated,

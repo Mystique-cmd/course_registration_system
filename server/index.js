@@ -393,6 +393,16 @@ app.post('/api/registrations/add', requireLogin, async (req, res) => {
       }
       const studentPkId = studentRows[0].id;
 
+      // Validate student eligibility: check maximum course registration limit (max 5 courses / 15 credits)
+      const [allRegs] = await conn.execute(
+        'SELECT COUNT(*) AS count FROM registrations WHERE student_id_fk = ?',
+        [studentPkId]
+      );
+      if (allRegs[0].count >= 5) {
+        await conn.rollback();
+        return res.status(400).json({ error: 'Eligibility check failed: You have reached the maximum registration limit of 15 credits (5 courses).' });
+      }
+
       // 2. Get course details
       const [courseRows] = await conn.execute(
         'SELECT id, enrollment_status, seats_filled, seats_total, waitlist_count FROM courses WHERE course_code = ? LIMIT 1',
@@ -473,8 +483,8 @@ app.post('/api/registrations/add', requireLogin, async (req, res) => {
 app.post('/api/registrations/drop', requireLogin, async (req, res) => {
   try {
     const studentId = req.session.studentId;
+    const courseCode = req.body.courseCode ? normalize(req.body.courseCode) : null;
 
-    // Drop most recently registered course for this student
     const conn = await pool.getConnection();
     try {
       await conn.beginTransaction();
@@ -489,21 +499,58 @@ app.post('/api/registrations/drop', requireLogin, async (req, res) => {
       }
       const studentPk = studentRows[0].id;
 
-      const [regRows] = await conn.execute(
-        'SELECT id FROM registrations WHERE student_id_fk = ? ORDER BY id DESC LIMIT 1',
-        [studentPk]
-      );
+      let regId = null;
+      let courseId = null;
 
-      if (!regRows.length) {
-        await conn.rollback();
-        return res.json({ ok: true, dropped: null });
+      if (courseCode) {
+        // Drop specific course
+        const [courseRows] = await conn.execute(
+          'SELECT id FROM courses WHERE course_code = ? LIMIT 1',
+          [courseCode]
+        );
+        if (!courseRows.length) {
+          await conn.rollback();
+          return res.status(404).json({ error: 'Course not found' });
+        }
+        courseId = courseRows[0].id;
+
+        const [regRows] = await conn.execute(
+          'SELECT id FROM registrations WHERE student_id_fk = ? AND course_id_fk = ? LIMIT 1',
+          [studentPk, courseId]
+        );
+        if (!regRows.length) {
+          await conn.rollback();
+          return res.status(400).json({ error: 'You are not registered for this course' });
+        }
+        regId = regRows[0].id;
+      } else {
+        // Fallback: Drop most recently registered course
+        const [regRows] = await conn.execute(
+          'SELECT id, course_id_fk FROM registrations WHERE student_id_fk = ? ORDER BY id DESC LIMIT 1',
+          [studentPk]
+        );
+        if (!regRows.length) {
+          await conn.rollback();
+          return res.json({ ok: true, dropped: null });
+        }
+        regId = regRows[0].id;
+        courseId = regRows[0].course_id_fk;
       }
 
-      const regId = regRows[0].id;
+      // Delete registration
       await conn.execute('DELETE FROM registrations WHERE id = ?', [regId]);
+
+      // Decrement seats_filled and set status to Open
+      await conn.execute(
+        'UPDATE courses SET seats_filled = GREATEST(0, seats_filled - 1), enrollment_status = "Open" WHERE id = ?',
+        [courseId]
+      );
 
       await conn.commit();
       return res.json({ ok: true, dropped: regId });
+    } catch (err) {
+      await conn.rollback();
+      throw err;
     } finally {
       conn.release();
     }

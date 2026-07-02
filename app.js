@@ -1336,12 +1336,12 @@ function bindCatalogControls() {
 
     loginForm?.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const studentId = normalize(e.target.studentId.value);
+      const email = normalize(e.target.email.value);
       const password = normalize(e.target.password.value);
 
-      if (!studentId || !password) {
+      if (!email || !password) {
         if (loginMessageEl) {
-          loginMessageEl.textContent = 'Please enter both student ID and password.';
+          loginMessageEl.textContent = 'Please enter both email and password.';
           loginMessageEl.className = 'form-message error-msg';
           loginMessageEl.hidden = false;
         }
@@ -1351,7 +1351,7 @@ function bindCatalogControls() {
       try {
         await apiFetch('/api/auth/login', {
           method: 'POST',
-          body: JSON.stringify({ studentId, password }),
+          body: JSON.stringify({ email, password }),
         });
         if (loginMessageEl) {
           loginMessageEl.textContent = 'Login successful! Redirecting to dashboard...';

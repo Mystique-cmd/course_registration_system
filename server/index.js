@@ -1,5 +1,50 @@
+// Load .env without extra dependency (dotenv isn't installed in package.json)
+const fs = require('fs');
+const path = require('path');
+
+(function loadEnv() {
+  const envPath = path.join(__dirname, '..', '.env');
+  if (!fs.existsSync(envPath)) return;
+  const raw = fs.readFileSync(envPath, 'utf8');
+  for (const line of raw.split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    const eq = trimmed.indexOf('=');
+    if (eq === -1) continue;
+    let key = trimmed.slice(0, eq).trim();
+    if (key.startsWith('export ')) key = key.replace(/^export\s+/, '').trim();
+    if (!key) continue;
+
+    // Keep everything after the first '=' as value (allows '=' in values)
+    let val = trimmed.slice(eq + 1).trim();
+
+    // Strip a single wrapping quote pair if present.
+    if (
+      (val.startsWith('"') && val.endsWith('"') && val.length >= 2) ||
+      (val.startsWith("'") && val.endsWith("'") && val.length >= 2)
+    ) {
+      val = val.slice(1, -1);
+    }
+
+    if (process.env[key] === undefined) process.env[key] = val;
+  }
+})();
+
+// Validate DB env vars (fail fast). Avoid printing DB_PASSWORD.
+(function validateDbEnv() {
+  const required = ['DB_HOST', 'DB_USER', 'DB_NAME', 'DB_PORT', 'DB_PASSWORD'];
+  const missing = required.filter((k) => process.env[k] === undefined || process.env[k] === '');
+  if (missing.length) {
+    console.error('Missing required DB environment variables:', missing.join(', '));
+    process.exit(1);
+  }
+})();
+
+
 const express = require('express');
+
 const session = require('express-session');
+
 
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
@@ -170,17 +215,25 @@ app.post('/api/auth/register', async (req, res) => {
 
 app.post('/api/auth/login', async (req, res) => {
   try {
-    const studentId = normalize(req.body.studentId);
+    // Preferred: login with email. We derive studentId as the part before '@'
+    // to match how registration derives studentId.
+    const email = normalize(req.body.email);
     const password = normalize(req.body.password);
 
+    // Backwards compatibility: if UI still sends studentId, allow it.
+    const studentIdFromBody = normalize(req.body.studentId);
+
+    const studentId = studentIdFromBody || (email ? email.split('@')[0] : '');
+
     if (!studentId || !password) {
-      return res.status(400).json({ error: 'Missing studentId/password' });
+      return res.status(400).json({ error: 'Missing email/password (or studentId/password)' });
     }
 
     const [rows] = await pool.execute(
       'SELECT id, student_id, password_hash FROM students WHERE student_id = ? LIMIT 1',
       [studentId]
     );
+
 
     if (!rows.length) return res.status(401).json({ error: 'Invalid credentials' });
 

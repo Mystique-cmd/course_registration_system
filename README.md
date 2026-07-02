@@ -8,8 +8,12 @@ It provides:
 - **Course catalog** with department/semester and availability filters
 - **Admin analytics** dashboard (charts + export report)
 
-> **Note:** In this version, all “database” data is stored in the browser’s `localStorage` (no backend required).
-> A MySQL schema is included under `db/schema.sql` for a future/parallel backend implementation.
+> **Note:** This repo can run in two modes:
+> - **Frontend-only local demo** (historical approach using `localStorage`)
+> - **Backend-first mode** (current): Node/Express + MySQL is the source of truth for login, catalog, registrations, and admin analytics.
+>
+> A MySQL schema is included under `db/schema.sql` (used by the backend).
+
 
 ---
 
@@ -24,40 +28,118 @@ All pages are static and can be opened directly in a browser:
 
 ---
 
-## How data works (local demo)
+## How data works
 
-`app.js` uses:
-- `localStorage` key `atomicity_users_v1` to store users and their registrations
-- `localStorage` key `atomicity_session_v1` to store the logged-in student id
+### Backend-first mode (recommended / current)
+- Authentication, student profiles, catalog, registrations, waitlist, and notifications are stored in **MySQL**.
+- The backend uses cookie-based sessions (`express-session`).
 
-### Default behaviors
-- Logging in requires a **matching** `studentId` + `password`.
-- Registration sets the password to **`default`**.
-- Admin mode is a demo gate: when the active session’s `studentId` equals **`admin`**, the analytics page behaves like admin.
+### Frontend-only local demo (historical)
+Older iterations used browser `localStorage` keys:
+- `atomicity_users_v1`
+- `atomicity_session_v1`
 
-You can clear browser storage to reset the app:
-- DevTools → Application → Local Storage → clear `atomicity_users_v1` and `atomicity_session_v1`
+If your current UI is using the backend endpoints, you should follow **Option 1** in the Setup section instead.
+
 
 ---
 
-## Setup (no server required)
+## Setup
+
+This project supports:
+- **Frontend-only local demo** (historical, `localStorage`-based)
+- **Backend-first mode (recommended / current)**: Node/Express + MySQL
+
+---
+
+## Option 1 (Backend-first mode - recommended): Node/Express + MySQL
+
+### 1) Prerequisites
+- Node.js (v16+ recommended)
+- MySQL server
+
+### 2) Start MySQL and create the database
+Create a database (name must match what you set in `.env` / env vars). The backend defaults are:
+- `DB_NAME=courseregistration`
+
+### 3) Import the schema
+From the project root:
+```bash
+# adjust credentials as needed
+mysql -u root -p courseregistration < "./db/schema.sql"
+```
+
+### 4) Configure backend environment variables
+Create env vars (or export them) for the backend. The backend reads:
+- `DB_HOST` (default `localhost`)
+- `DB_USER` (default `root`)
+- `DB_PASSWORD`
+- `DB_NAME` (default `courseregistration`)
+- `DB_PORT` (default `3306`)
+- `SESSION_SECRET` (recommended)
+- `PORT` (default `3000`)
+
+If you don’t want to use a `.env` file, you can export in your shell, for example:
+```bash
+export DB_HOST=localhost
+export DB_USER=root
+export DB_PASSWORD=YOUR_PASSWORD
+export DB_NAME=courseregistration
+export DB_PORT=3306
+export SESSION_SECRET="change-me"
+export PORT=3000
+```
+
+### 5) Install backend dependencies and run the server
+```bash
+cd "./server"
+npm install
+npm start
+```
+
+The API base URL will be:
+- http://localhost:3000/api
+
+### 6) Run the frontend
+Because the frontend pages are static, run a simple local server from the project root (recommended):
+```bash
+cd "./"
+python3 -m http.server 8000
+```
+Open:
+- http://localhost:8000/login.html
+
+### 7) Login and register
+- Student login/registration goes through the backend endpoints.
+- After registration, go to:
+  - `dashboard.html`
+  - `catalog.html`
+  - `admin_dashboard.html`
+
+**Admin gate (demo):** login as `studentId = admin` to access admin-mode analytics behavior.
+
+---
+
+## Option 2 (Frontend-only local demo): open static files
+
+> If you open the HTML files without running the backend, you will need to be on an older frontend build that uses `localStorage` (historical mode). If your current UI is API-driven, use Option 1 instead.
+
+
+
+> Note: The README historically described `localStorage` keys (`atomicity_users_v1`, `atomicity_session_v1`).
+> If the UI you’re using is currently backend-first (API calls), you should use Option 1.
 
 ### Option A: Open directly
-1. Navigate to the project folder:
+1. Navigate to:
    - `/home/mystique/Desktop/course registration system`
-2. Open any of these files in a browser:
-   - `login.html` (recommended)
+2. Open:
+   - `login.html`
 
-Because the app is static, no build step is needed.
+### Option B: Use a local web server (recommended)
+Some browsers restrict features for `file://`.
 
-### Option B: Use a simple local web server (recommended)
-Some browsers restrict certain features for `file://`.
-
-From the project folder, run one of:
-
-**Python 3**
+From the project folder:
 ```bash
-cd "/home/mystique/Desktop/course registration system"
 python3 -m http.server 8000
 ```
 Then open:
@@ -65,23 +147,17 @@ Then open:
 
 ---
 
-## MySQL Schema (optional)
+## MySQL schema (used by the backend)
 
-If you plan to move from the demo `localStorage` approach to a real backend, use:
-- `db/schema.sql`
+The backend uses `db/schema.sql`.
 
 ### What it contains
 - `students`
-- `courses` (seeded with the same sample catalog items)
+- `courses` (seeded with the sample catalog)
 - `registrations` (student ↔ course)
 - `waitlist_entries`
 - `notifications`
 
-### Run it
-Example (MySQL):
-```sql
-SOURCE /path/to/course registration system/db/schema.sql;
-```
 
 ---
 
@@ -118,9 +194,10 @@ SOURCE /path/to/course registration system/db/schema.sql;
 
 ## Notes / Limitations
 
-- This is a **frontend-only** demo.
-- “Admin auth” is a simple demo gate (`studentId === 'admin'`).
-- Reports and analytics are computed deterministically in the frontend.
+- In **backend-first mode**, data is stored in **MySQL** and auth uses **cookie sessions**.
+- “Admin auth” is still a demo gate (backend treats `studentId === 'admin'` as admin-mode for analytics).
+- Some UI/data (e.g., schedule rendering and certain catalog defaults) may still be seeded on the frontend for compatibility.
+
 
 ---
 

@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Course Registration - Schedule</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="app" data-page="schedule">
+    <section class="dashboard" aria-label="Student Schedule">
+      <aside class="sidebar" aria-label="Sidebar navigation">
+        <div class="brand-title sidebar-brand">Atomicity</div>
+
+        <nav class="nav" aria-label="Primary">
+          <button class="nav-item" type="button" data-nav="dashboard">Dashboard</button>
+          <button class="nav-item is-active" type="button" data-nav="schedule">Schedule</button>
+          <button class="nav-item" type="button" data-nav="browse">Browse Courses</button>
+          <button class="nav-item" type="button" data-nav="grades">Grades</button>
+          <button class="nav-item" type="button" data-nav="settings">Settings</button>
+        </nav>
+
+        <div class="sidebar-actions">
+          <button class="btn btn-ghost" type="button" id="logout-btn">Logout</button>
+        </div>
+      </aside>
+
+      <div class="dashboard-main">
+        <header class="dash-header">
+          <div>
+            <div class="dash-greeting" id="schedule-greeting">Hello, Student</div>
+            <div class="dash-sub" id="schedule-program">Program</div>
+          </div>
+        </header>
+
+        <div class="weekly-row" style="grid-template-columns: 1.35fr 0.65fr 0.65fr;">
+          <section class="card weekly-card" aria-label="Weekly Schedule">
+            <h2 class="card-title">Weekly Schedule</h2>
+            <div class="weekly-sub muted small">Monday–Friday • 8:00 AM–4:00 PM</div>
+            <div class="weekly-schedule" id="weekly-schedule" aria-label="Weekly schedule grid"></div>
+          </section>
+
+          <section class="card weekly-side" aria-label="Upcoming Tests">
+            <h2 class="card-title">Upcoming Tests</h2>
+            <div class="muted small">Countdown to your next course tests</div>
+            <div class="list" id="tests-countdown-list" aria-label="Tests countdown list" style="margin-top:10px;"></div>
+            <div class="muted small" id="tests-countdown-empty" style="margin-top:10px;">No upcoming tests.</div>
+          </section>
+
+          <section class="card weekly-side" aria-label="Pending Tasks">
+            <h2 class="card-title">Pending Tasks</h2>
+            <div class="muted small">Things to do before your next assessments</div>
+            <div class="list" id="pending-tasks-list" aria-label="Pending tasks list" style="margin-top:10px;"></div>
+            <div class="muted small" id="pending-tasks-empty" style="margin-top:10px;">No pending tasks.</div>
+          </section>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+  <script>
+    window.__STUDENT_PAGE_SYNC__ = true;
+  </script>
+</body>
+</html>
+

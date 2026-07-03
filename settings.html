@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Course Registration - Settings</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="app" data-page="settings">
+    <section class="dashboard" aria-label="Student Settings">
+      <aside class="sidebar" aria-label="Sidebar navigation">
+        <div class="brand-title sidebar-brand">Atomicity</div>
+
+        <nav class="nav" aria-label="Primary">
+          <button class="nav-item" type="button" data-nav="dashboard">Dashboard</button>
+          <button class="nav-item" type="button" data-nav="browse">Browse Courses</button>
+          <button class="nav-item" type="button" data-nav="schedule">Schedule</button>
+          <button class="nav-item" type="button" data-nav="grades">Grades</button>
+          <button class="nav-item is-active" type="button" data-nav="settings">Settings</button>
+        </nav>
+
+        <div class="sidebar-actions">
+          <button class="btn btn-ghost" type="button" id="logout-btn">Logout</button>
+        </div>
+      </aside>
+
+      <div class="dashboard-main">
+        <header class="dash-header">
+          <div>
+            <div class="dash-greeting" id="settings-greeting">Hello, Student</div>
+            <div class="dash-sub" id="settings-program">Program</div>
+          </div>
+        </header>
+
+        <div class="grid" style="grid-template-columns: 1fr;">
+          <section class="card" aria-label="Account settings">
+            <h2 class="card-title">Account Settings</h2>
+
+            <div style="display:flex; flex-direction:column; gap:12px;">
+              <div class="list-item" style="justify-content:flex-start;">
+                <div style="min-width:170px; color: var(--muted); font-weight:900;">Student Name</div>
+                <div id="settings-student-name" style="font-weight:1000;">—</div>
+              </div>
+
+              <div class="list-item" style="justify-content:flex-start;">
+                <div style="min-width:170px; color: var(--muted); font-weight:900;">Email</div>
+                <div id="settings-email" style="font-weight:1000;">—</div>
+              </div>
+
+              <div class="list-item" style="justify-content:flex-start;">
+                <div style="min-width:170px; color: var(--muted); font-weight:900;">Credits</div>
+                <div><span id="settings-credits-earned" style="font-weight:1000;">0</span> / <span id="settings-credits-required" style="font-weight:1000;">0</span></div>
+              </div>
+
+              <div class="muted small">Note: This demo UI does not yet support profile edits.</div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+  <script>
+    window.__STUDENT_PAGE_SYNC__ = true;
+  </script>
+</body>
+</html>
+

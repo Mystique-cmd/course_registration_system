@@ -26,6 +26,48 @@ function getPage() {
   return main?.dataset?.page || 'index';
 }
 
+function bindStudentSidebarNavigation() {
+  // Works across multiple standalone pages by routing to dedicated HTML.
+  const container = document;
+  const navBtns = Array.from(container.querySelectorAll('[data-nav]'));
+  if (!navBtns.length) return;
+
+  const route = (key) => {
+    switch (key) {
+      case 'dashboard':
+        return 'dashboard.html';
+      case 'browse':
+        return 'browse_courses.html';
+      case 'schedule':
+        return 'schedule.html';
+      case 'grades':
+        return 'grades.html';
+      case 'settings':
+        return 'settings.html';
+      default:
+        return 'dashboard.html';
+    }
+  };
+
+  navBtns.forEach((btn) => {
+    if (btn.dataset.nav && !btn.__bbaiBound) {
+      btn.__bbaiBound = true;
+      btn.addEventListener('click', () => {
+        window.location.assign(route(btn.dataset.nav));
+      });
+    }
+  });
+
+  const logoutBtn = $('#logout-btn');
+  logoutBtn?.addEventListener('click', async () => {
+    try {
+      await apiFetch('/api/auth/logout', { method: 'POST' });
+    } catch {}
+    window.location.assign('login.html');
+  });
+}
+
+
 function getAdminMode() {
   // Backend decides admin-gated analytics; this helper is no longer used for auth.
   // Keep returning false by default.
@@ -1431,6 +1473,7 @@ function bindCatalogControls() {
 
   // Student Dashboard page
   if (page === 'dashboard') {
+    // sidebar navigation is bound globally below
     (async () => {
       try {
         const student = await apiFetch('/api/students/me');
@@ -1532,8 +1575,8 @@ function bindCatalogControls() {
     return;
   }
 
-  // Catalog page
-  if (page === 'catalog') {
+  // Browse Courses page (separate from legacy catalog.html)
+  if (page === 'browse_courses' || page === 'catalog') {
     (async () => {
       try {
         await apiFetch('/api/students/me');
@@ -1668,6 +1711,136 @@ function bindCatalogControls() {
     })();
   }
 
+
+  // Schedule page
+  if (page === 'schedule') {
+
+    (async () => {
+      try {
+        const student = await apiFetch('/api/students/me');
+        const migrated = migrateUserModel({
+          ...student,
+          registrations: (student.registeredCourses || []).map((c) => ({
+            courseName: c.courseName,
+            kcseGrade: c.kcseGrade,
+          })),
+          registeredCourses: student.registeredCourses,
+          waitlist: student.waitlist,
+          notifications: student.notifications,
+          creditsEarned: student.creditsEarned,
+          creditsRequired: student.creditsRequired,
+          studentName: student.studentName,
+          program: student.program,
+        });
+
+        $('#schedule-greeting') && ($('#schedule-greeting').textContent = `Hello, ${migrated.studentName || 'Student'}!`);
+        $('#schedule-program') && ($('#schedule-program').textContent = migrated.program || 'Program');
+
+        renderWeeklySchedule(migrated);
+        renderUpcomingTests(migrated);
+        renderPendingTasks(migrated);
+
+        // no logout binding here; handled by sidebar binder
+        return;
+      } catch (err) {
+        console.error('[schedule] /api/students/me failed', err);
+        setTimeout(() => window.location.assign('login.html'), 800);
+      }
+    })();
+    return;
+  }
+
+  // Grades page
+  if (page === 'grades') {
+    (async () => {
+      try {
+        const student = await apiFetch('/api/students/me');
+        const migrated = migrateUserModel({
+          ...student,
+          registrations: (student.registeredCourses || []).map((c) => ({
+            courseName: c.courseName,
+            kcseGrade: c.kcseGrade,
+          })),
+          registeredCourses: student.registeredCourses,
+          waitlist: student.waitlist,
+          notifications: student.notifications,
+          creditsEarned: student.creditsEarned,
+          creditsRequired: student.creditsRequired,
+          studentName: student.studentName,
+          program: student.program,
+        });
+
+        $('#grades-greeting') && ($('#grades-greeting').textContent = `Hello, ${migrated.studentName || 'Student'}!`);
+        $('#grades-program') && ($('#grades-program').textContent = migrated.program || 'Program');
+
+        const list = $('#grades-list');
+        const empty = $('#grades-empty');
+        if (list) {
+          list.innerHTML = '';
+          const courses = migrated.registeredCourses || [];
+          if (!courses.length) {
+            if (empty) empty.hidden = false;
+          } else {
+            if (empty) empty.hidden = true;
+            courses.forEach((c) => {
+              const row = document.createElement('div');
+              row.className = 'trow';
+              row.setAttribute('role', 'row');
+              row.innerHTML = `
+                <div role="cell" class="td td-strong">${escapeHtml(c.courseName || c.title || 'Course')}</div>
+                <div role="cell" class="td">${escapeHtml(c.kcseGrade ?? '—')}</div>
+                <div role="cell" class="td">${escapeHtml(c.kcseGrade ? 'Submitted' : 'Pending')}</div>
+              `;
+              list.appendChild(row);
+            });
+          }
+        }
+        return;
+      } catch (err) {
+        console.error('[grades] /api/students/me failed', err);
+        setTimeout(() => window.location.assign('login.html'), 800);
+      }
+    })();
+    return;
+  }
+
+  // Settings page
+  if (page === 'settings') {
+    bindStudentSidebarNavigation();
+    (async () => {
+      try {
+        const student = await apiFetch('/api/students/me');
+        const migrated = migrateUserModel({
+          ...student,
+          registrations: (student.registeredCourses || []).map((c) => ({
+            courseName: c.courseName,
+            kcseGrade: c.kcseGrade,
+          })),
+          registeredCourses: student.registeredCourses,
+          waitlist: student.waitlist,
+          notifications: student.notifications,
+          creditsEarned: student.creditsEarned,
+          creditsRequired: student.creditsRequired,
+          studentName: student.studentName,
+          program: student.program,
+        });
+
+        $('#settings-greeting') && ($('#settings-greeting').textContent = `Hello, ${migrated.studentName || 'Student'}!`);
+        $('#settings-program') && ($('#settings-program').textContent = migrated.program || 'Program');
+
+        $('#settings-student-name') && ($('#settings-student-name').textContent = migrated.studentName || '—');
+        $('#settings-email') && ($('#settings-email').textContent = migrated.email || '—');
+        $('#settings-credits-earned') && ($('#settings-credits-earned').textContent = String(migrated.creditsEarned || 0));
+        $('#settings-credits-required') && ($('#settings-credits-required').textContent = String(migrated.creditsRequired || 0));
+
+        return;
+      } catch (err) {
+        console.error('[settings] /api/students/me failed', err);
+        setTimeout(() => window.location.assign('login.html'), 800);
+      }
+    })();
+    return;
+  }
 
   // Admin Analytics page
   if (page === 'admin_analytics') {

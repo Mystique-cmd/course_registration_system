@@ -28,9 +28,30 @@ function getPage() {
 
 function bindStudentSidebarNavigation() {
   // Works across multiple standalone pages by routing to dedicated HTML.
+  // Also keeps the active nav state in sync with the current page.
   const container = document;
+
+  const setActive = (key) => {
+    navBtns.forEach((btn) => {
+      if (!btn.dataset || !btn.dataset.nav) return;
+      btn.classList.toggle('is-active', btn.dataset.nav === key);
+    });
+  };
   const navBtns = Array.from(container.querySelectorAll('[data-nav]'));
   if (!navBtns.length) return;
+
+  // Initialize active state based on HTML data-page / default dashboard
+  const page = getPage();
+  const pageKeyMap = {
+    dashboard: 'dashboard',
+    browse_courses: 'browse',
+    catalog: 'browse',
+    schedule: 'schedule',
+    grades: 'grades',
+    settings: 'settings',
+  };
+  setActive(pageKeyMap[page] || 'dashboard');
+
 
   const route = (key) => {
     switch (key) {
@@ -53,10 +74,12 @@ function bindStudentSidebarNavigation() {
     if (btn.dataset.nav && !btn.__bbaiBound) {
       btn.__bbaiBound = true;
       btn.addEventListener('click', () => {
+        setActive(btn.dataset.nav);
         window.location.assign(route(btn.dataset.nav));
       });
     }
   });
+
 
   const logoutBtn = $('#logout-btn');
   logoutBtn?.addEventListener('click', async () => {
@@ -1473,7 +1496,7 @@ function bindCatalogControls() {
 
   // Student Dashboard page
   if (page === 'dashboard') {
-    // sidebar navigation is bound globally below
+    bindStudentSidebarNavigation();
     (async () => {
       try {
         const student = await apiFetch('/api/students/me');

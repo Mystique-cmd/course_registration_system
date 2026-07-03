@@ -21,12 +21,16 @@ body{
   color:var(--text);
   min-height:100vh;
   display:flex;
-  align-items:center;
-  justify-content:center;
-  padding:28px 16px;
+  align-items:stretch;
+  justify-content:flex-start;
+  padding:0;
 }
 
-.app{width:100%; max-width:980px; display:flex; justify-content:center;}
+
+
+
+.app{width:100%; max-width:980px; display:flex; justify-content:center; align-self:stretch;}
+
 
 .auth-card{
   width:100%;
@@ -356,6 +360,41 @@ body{
   .cat-grid{grid-template-columns: 1fr;}
   .admin-grid{grid-template-columns: 1fr;}
 }
+
+/* Extra small screens: prevent weekly schedule from feeling "compressed" */
+@media (max-width: 600px){
+  body{padding:20px 12px;}
+
+  /* Avoid tall cards forcing squeeze */
+  .weekly-card,
+  .weekly-side{
+    min-height:0 !important;
+  }
+
+  /* Reflow the 4-column weekly grid section */
+  .weekly-row{
+    grid-template-columns: 1fr !important;
+    gap:12px;
+  }
+
+  /* Make schedule shorter + more readable on phones */
+  .weekly-schedule{
+    height:auto;
+  }
+
+  .weekly-grid{
+    /* keep grid visible but reduce vertical footprint */
+    height:320px;
+    grid-template-columns: 54px repeat(5, 1fr);
+    grid-template-rows: 28px repeat(16, 1fr);
+  }
+
+  /* Slightly reduce block text sizing */
+  .course-block strong{font-size:11px;}
+  .course-block .cb-title{font-size:10px;}
+  .course-block .cb-meta{font-size:9px; margin-top:4px;}
+}
+
 
 /* Admin Analytics */
 .admin{

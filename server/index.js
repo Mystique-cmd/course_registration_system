@@ -78,7 +78,10 @@ app.use(
     cookie: {
       httpOnly: true,
       sameSite: 'lax',
-      secure: process.env.NODE_ENV === 'production',
+      // In dev you often run the frontend over plain http (e.g. python http.server).
+      // If the cookie is marked Secure, browsers won't store/send it over http,
+      // causing /api/students/me to return 401 and the UI to bounce to login.
+      secure: process.env.NODE_ENV === 'production' && String(process.env.USE_HTTPS || 'false') === 'true',
       maxAge: 1000 * 60 * 60 * 6,
     },
   })
@@ -138,12 +141,6 @@ app.post('/api/auth/register', async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-    if (!passwordRegex.test(password)) {
-      return res.status(400).json({
-        error: 'Password must be at least 8 characters long, and contain at least one uppercase letter, one lowercase letter, one number, and one special character.'
-      });
-    }
 
     const studentId = email.split('@')[0];
     const passwordHash = await hashPassword(password);
@@ -322,7 +319,7 @@ app.get('/api/students/me', requireLogin, async (req, res) => {
     }));
 
     const [notifRows] = await pool.execute(
-      `SELECT type, message, created_at
+      `SELECT n.type, n.message, n.created_at
        FROM notifications n
        INNER JOIN students st ON st.id = n.student_id_fk
        WHERE st.student_id = ?

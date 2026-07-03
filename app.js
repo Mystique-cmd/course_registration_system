@@ -1311,22 +1311,13 @@ function bindCatalogControls() {
 (function init() {
   const page = getPage();
 
-  // Shared: Login/Registration page
+  // Login page
   if (page === 'login') {
-    const registerInline = $('#register-inline');
-
-    $('#create-link')?.addEventListener('click', (e) => {
-      e.preventDefault();
-      if (registerInline) registerInline.hidden = false;
-    });
-
-    $('#view-login-link')?.addEventListener('click', (e) => {
-      e.preventDefault();
-      if (registerInline) registerInline.hidden = true;
-    });
-
     const loginMessageEl = $('#login-message');
     const loginForm = $('#login-form');
+    console.log('[login] init', { page });
+
+
 
     loginForm?.querySelectorAll('input').forEach(input => {
       input.addEventListener('input', () => {
@@ -1376,6 +1367,14 @@ function bindCatalogControls() {
       alert('Password reset is not implemented in this step.');
     });
 
+
+
+
+    return;
+  }
+
+  // Registration page
+  if (page === 'register') {
     const registerMessageEl = $('#register-message');
     const registerForm = $('#register-form');
 
@@ -1403,26 +1402,18 @@ function bindCatalogControls() {
         return;
       }
 
-      const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-      if (!passwordRegex.test(password)) {
-        if (registerMessageEl) {
-          registerMessageEl.textContent = 'Password must be at least 8 characters long, and contain at least one uppercase letter, one lowercase letter, one number, and one special character.';
-          registerMessageEl.className = 'form-message error-msg';
-          registerMessageEl.hidden = false;
-        }
-        return;
-      }
-
       try {
         await apiFetch('/api/auth/register', {
           method: 'POST',
           body: JSON.stringify({ studentName, email, password, courseName, kcse }),
         });
+
         if (registerMessageEl) {
           registerMessageEl.textContent = 'Registration successful! Redirecting to dashboard...';
           registerMessageEl.className = 'form-message success-msg';
           registerMessageEl.hidden = false;
         }
+
         setTimeout(() => {
           window.location.assign('dashboard.html');
         }, 1500);
@@ -1434,7 +1425,6 @@ function bindCatalogControls() {
         }
       }
     });
-
 
     return;
   }
@@ -1508,9 +1498,15 @@ function bindCatalogControls() {
 
         return;
       } catch (err) {
-        window.location.assign('login.html');
+        console.error('[dashboard] /api/students/me failed', err);
+        const msg = `Session check failed. Please login again. (${String(err?.message || err)})`;
+        const el = $('#dash-secondary-body');
+        if (el) el.textContent = msg;
+        // Keep the old redirect as a fallback after a short delay.
+        setTimeout(() => window.location.assign('login.html'), 800);
       }
     })();
+
 
     return;
 

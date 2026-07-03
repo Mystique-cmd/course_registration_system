@@ -40,58 +40,23 @@
         </div>
 
         <div class="alt">
-          <a class="link" href="#" id="create-link">Don't have an account? Create one</a>
+          <a class="link" href="registration.html" id="create-link">Don't have an account? Create one</a>
         </div>
+
+        <script>
+          (function () {
+            const link = document.getElementById('create-link');
+            if (!link) return;
+            link.addEventListener('click', (e) => {
+              e.preventDefault();
+              window.location.assign('registration.html');
+            });
+          })();
+        </script>
+
       </form>
 
-      <section id="register-inline" hidden>
-        <h1 class="headline" style="margin-top:18px;">Course Registration</h1>
-        <p class="subhead">Enter your credentials to enroll in a course</p>
 
-        <form class="form" id="register-form" autocomplete="on">
-          <div class="form-message" id="register-message" hidden></div>
-          <label class="field">
-            <span class="label">student name</span>
-            <input class="input" name="studentName" type="text" placeholder="Your full name..." required />
-          </label>
-
-          <label class="field">
-            <span class="label">Email Address</span>
-            <input class="input" name="email" type="email" placeholder="name@university.edu" required />
-          </label>
-
-          <label class="field">
-            <span class="label">Password</span>
-            <input class="input" name="password" type="password" placeholder="••••••••" 
-                   pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&amp;])[A-Za-z\d@$!%*?&amp;]{8,}$"
-                   title="Password must be at least 8 characters long, and contain at least one uppercase letter, one lowercase letter, one number, and one special character."
-                   required />
-          </label>
-
-          <label class="field">
-            <span class="label">course name</span>
-            <select class="input" name="courseName" required>
-              <option value="" disabled selected>Select a course</option>
-              <option>Computer Science</option>
-              <option>Data Structures</option>
-              <option>Advanced React Patterns</option>
-              <option>Business Administration</option>
-              <option>Engineering Fundamentals</option>
-            </select>
-          </label>
-
-          <label class="field">
-            <span class="label">KCSE grade</span>
-            <input class="input" name="kcse" type="text" placeholder="Mean Grade..." required />
-          </label>
-
-          <button class="btn" type="submit">Complete Registration</button>
-
-          <div class="alt">
-            <a class="link" href="#" id="view-login-link">Already registered? Sign in</a>
-          </div>
-        </form>
-      </section>
 
       <footer class="footer">
         © 2026 CourseReg Inc. All Rights Reserved. Built for higher education excellence.

@@ -204,8 +204,9 @@ body{
 
 .weekly-row{display:grid; grid-template-columns: 1.35fr 0.65fr 0.65fr 0.65fr; gap:14px; margin-top:14px;}
 .weekly-row--no-weekly{grid-template-columns: 1fr 1fr 1fr;}
-.weekly-card{min-height:420px;}
-.weekly-side{min-height:420px;}
+.weekly-card{min-height:0;}
+.weekly-side{min-height:0;}
+
 
 
 .weekly-sub{margin-bottom:10px;}
@@ -213,19 +214,24 @@ body{
 /* Weekly schedule */
 .weekly-schedule{
   width:100%;
-  height:420px;
+  height:auto;
+  min-height:320px;
   border-radius:14px;
   border:1px solid rgba(190,160,255,.14);
   background: rgba(255,255,255,.01);
   overflow:hidden;
 }
 
+
 .weekly-grid{
   display:grid;
   grid-template-columns: 72px repeat(5, 1fr);
   grid-template-rows: 34px repeat(16, 1fr);
-  height:420px;
+  height:auto;
+  min-height:0;
 }
+
+
 
 .weekly-time-head{
   grid-column:1;
@@ -370,8 +376,9 @@ body{
   /* Avoid tall cards forcing squeeze */
   .weekly-card,
   .weekly-side{
-    min-height:0 !important;
+    min-height:0;
   }
+
 
   /* Reflow the 4-column weekly grid section */
   .weekly-row{
@@ -386,10 +393,13 @@ body{
 
   .weekly-grid{
     /* keep grid visible but reduce vertical footprint */
-    height:320px;
+    height:auto;
+    min-height:0;
     grid-template-columns: 54px repeat(5, 1fr);
     grid-template-rows: 28px repeat(16, 1fr);
   }
+
+
 
   /* Slightly reduce block text sizing */
   .course-block strong{font-size:11px;}

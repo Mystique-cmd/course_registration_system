@@ -8,9 +8,11 @@ It provides:
 - **Course catalog** with department/semester and availability filters
 - **Admin analytics** dashboard (charts + export report)
 
-> **Note:** This repo can run in two modes:
-> - **Frontend-only local demo** (historical approach using `localStorage`)
-> - **Backend-first mode** (current): Node/Express + MySQL is the source of truth for login, catalog, registrations, and admin analytics.
+> **Note:** This repo is built as a **backend-first** app.
+>
+> - Frontend: static HTML/CSS/JS pages
+> - Backend: Node/Express API with cookie-based sessions
+> - MySQL: source of truth for users, catalog, registrations, waitlist, and admin analytics
 >
 > A MySQL schema is included under `db/schema.sql` (used by the backend).
 
@@ -19,11 +21,13 @@ It provides:
 
 ## Demo / Project Pages
 
-All pages are static and can be opened directly in a browser:
+UI pages are static and can be opened directly in a browser once the backend is running.
+
 - `index.html` → redirects to `login.html`
-- `login.html` → login + inline account/course registration
+- `login.html` → login form
+- `registration.html` → registration form
 - `dashboard.html` → student dashboard
-- `catalog.html` → course catalog
+- `catalog.html` → course catalog (register / join waitlist)
 - `admin_dashboard.html` → admin analytics dashboard
 
 ---
@@ -34,43 +38,37 @@ All pages are static and can be opened directly in a browser:
 - Authentication, student profiles, catalog, registrations, waitlist, and notifications are stored in **MySQL**.
 - The backend uses cookie-based sessions (`express-session`).
 
-### Frontend-only local demo (historical)
-Older iterations used browser `localStorage` keys:
-- `atomicity_users_v1`
-- `atomicity_session_v1`
-
-If your current UI is using the backend endpoints, you should follow **Option 1** in the Setup section instead.
-
 
 ---
 
-## Setup
+## Setup (Backend-first)
 
-This project supports:
-- **Frontend-only local demo** (historical, `localStorage`-based)
-- **Backend-first mode (recommended / current)**: Node/Express + MySQL
+This project uses:
+- **Frontend:** static pages served by a simple web server
+- **Backend:** Node/Express API + cookie-based sessions
+- **Database:** MySQL (schema in `db/schema.sql`)
 
 ---
 
-## Option 1 (Backend-first mode - recommended): Node/Express + MySQL
+## Step-by-step setup
 
 ### 1) Prerequisites
 - Node.js (v16+ recommended)
 - MySQL server
 
-### 2) Start MySQL and create the database
-Create a database (name must match what you set in `.env` / env vars). The backend defaults are:
-- `DB_NAME=courseregistration`
+### 2) Create the MySQL database
+Create a database with the same name you’ll use for `DB_NAME`.
 
-### 3) Import the schema
+> Backend default: `DB_NAME=courseregistration`
+
+### 3) Import the database schema
 From the project root:
 ```bash
-# adjust credentials as needed
 mysql -u root -p courseregistration < "./db/schema.sql"
 ```
 
 ### 4) Configure backend environment variables
-Create env vars (or export them) for the backend. The backend reads:
+The backend reads these environment variables:
 - `DB_HOST` (default `localhost`)
 - `DB_USER` (default `root`)
 - `DB_PASSWORD`
@@ -79,7 +77,7 @@ Create env vars (or export them) for the backend. The backend reads:
 - `SESSION_SECRET` (recommended)
 - `PORT` (default `3000`)
 
-If you don’t want to use a `.env` file, you can export in your shell, for example:
+You can set them via a shell, for example:
 ```bash
 export DB_HOST=localhost
 export DB_USER=root
@@ -90,60 +88,71 @@ export SESSION_SECRET="change-me"
 export PORT=3000
 ```
 
-### 5) Install backend dependencies and run the server
+> The backend also supports a local `.env` file (it is loaded by `server/index.js`).
+
+### 5) Install backend dependencies and run the API
+From the project root:
 ```bash
 cd "./server"
 npm install
 npm start
 ```
 
-The API base URL will be:
+The API runs at:
 - http://localhost:3000/api
 
-### 6) Run the frontend
-Because the frontend pages are static, run a simple local server from the project root (recommended):
+### 6) Run the frontend (static pages)
+From the project root:
 ```bash
-cd "./"
 python3 -m http.server 8000
 ```
-Open:
+
+Open the UI at:
 - http://localhost:8000/login.html
 
-### 7) Login and register
-- Student login/registration goes through the backend endpoints.
-- After registration, go to:
-  - `dashboard.html`
-  - `catalog.html`
-  - `admin_dashboard.html`
+### 7) Login / register and use the app
+1. Register (or use an existing student record)
+2. Login via `login.html`
+3. After login, navigate to:
+   - `dashboard.html`
+   - `catalog.html`
+   - `admin_dashboard.html`
 
-**Admin gate (demo):** login as `studentId = admin` to access admin-mode analytics behavior.
+**Admin analytics (demo gate):** log in with `studentId = admin` to enable admin-mode analytics.
 
 ---
 
-## Option 2 (Frontend-only local demo): open static files
+## Troubleshooting (common issues)
 
-> If you open the HTML files without running the backend, you will need to be on an older frontend build that uses `localStorage` (historical mode). If your current UI is API-driven, use Option 1 instead.
+### Backend starts but UI login fails (401 / redirects)
+- Confirm your backend is running on the port in the README (`http://localhost:3000/api`).
+- Ensure your browser accepts cookies from `localhost:3000`.
+- Since the frontend is served from a different port (e.g. `8000`), make sure the browser allows third-party cookie behavior for `localhost`.
+
+### MySQL errors
+- Verify `DB_NAME` matches the database you created.
+- Verify `DB_PASSWORD` and `DB_PORT`.
 
 
+### 8) Cookies / sessions note (important)
+- The backend uses cookie-based sessions.
+- The frontend calls the API with `credentials: 'include'`, so cookies must be accepted by your browser.
+- Running frontend and backend on different ports (e.g., 8000 and 3000) is supported in typical dev setups.
 
-> Note: The README historically described `localStorage` keys (`atomicity_users_v1`, `atomicity_session_v1`).
-> If the UI you’re using is currently backend-first (API calls), you should use Option 1.
+---
 
-### Option A: Open directly
-1. Navigate to:
-   - `/home/mystique/Desktop/course registration system`
-2. Open:
-   - `login.html`
+### Project pages mapping
+- `index.html` → redirects to `login.html`
+- `login.html` → login form
+- `registration.html` → registration form
+- `dashboard.html` → student dashboard
+- `catalog.html` → course catalog + register/join waitlist
+- `admin_dashboard.html` → admin analytics
 
-### Option B: Use a local web server (recommended)
-Some browsers restrict features for `file://`.
 
-From the project folder:
-```bash
-python3 -m http.server 8000
-```
-Then open:
-- http://localhost:8000/login.html
+---
+
+
 
 ---
 

@@ -319,7 +319,7 @@ app.get('/api/students/me', requireLogin, async (req, res) => {
     }));
 
     const [notifRows] = await pool.execute(
-      `SELECT n.type, n.message, n.created_at
+      `SELECT n.type AS type, n.message AS message, n.created_at AS created_at
        FROM notifications n
        INNER JOIN students st ON st.id = n.student_id_fk
        WHERE st.student_id = ?

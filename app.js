@@ -517,11 +517,12 @@ function renderAdminDashboard({ isAdmin }) {
 function renderDashboard(student) {
   const dashGreeting = $('#dash-greeting');
 
-  // Weekly Schedule (optional - dashboard-only)
-  renderWeeklySchedule(student);
+  // Weekly Schedule removed from dashboard UI
+  // renderWeeklySchedule(student);
   renderUpcomingTests(student);
   renderPendingTasks(student);
   renderStudySuggestion(student);
+
 
   const dashProgram = $('#dash-program');
   const earnedEl = $('#progress-earned');
@@ -1737,10 +1738,12 @@ function bindCatalogControls() {
 
   // Schedule page
   if (page === 'schedule') {
+    bindStudentSidebarNavigation();
 
     (async () => {
       try {
         const student = await apiFetch('/api/students/me');
+
         const migrated = migrateUserModel({
           ...student,
           registrations: (student.registeredCourses || []).map((c) => ({
@@ -1775,9 +1778,12 @@ function bindCatalogControls() {
 
   // Grades page
   if (page === 'grades') {
+    bindStudentSidebarNavigation();
+
     (async () => {
       try {
         const student = await apiFetch('/api/students/me');
+
         const migrated = migrateUserModel({
           ...student,
           registrations: (student.registeredCourses || []).map((c) => ({

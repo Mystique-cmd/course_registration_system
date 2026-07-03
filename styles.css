@@ -203,8 +203,10 @@ body{
 .grid-2col{grid-template-columns:1fr 1fr;}
 
 .weekly-row{display:grid; grid-template-columns: 1.35fr 0.65fr 0.65fr 0.65fr; gap:14px; margin-top:14px;}
+.weekly-row--no-weekly{grid-template-columns: 1fr 1fr 1fr;}
 .weekly-card{min-height:420px;}
 .weekly-side{min-height:420px;}
+
 
 .weekly-sub{margin-bottom:10px;}
 

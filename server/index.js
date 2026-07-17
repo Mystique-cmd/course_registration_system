@@ -79,12 +79,32 @@ app.use(
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      sameSite: 'lax',
-      // In dev you often run the frontend over plain http (e.g. python http.server).
-      // If the cookie is marked Secure, browsers won't store/send it over http,
-      // causing /api/students/me to return 401 and the UI to bounce to login.
-      secure: process.env.NODE_ENV === 'production' && String(process.env.USE_HTTPS || 'false') === 'true',
-      maxAge: 1000 * 60 * 60 * 6,
+      // Cross-site cookies are required when your frontend is on Vercel and API is on a different domain.
+      // Browsers require: sameSite=None + secure=true for cross-site cookies.
+      sameSite: process.env.COOKIE_SAME_SITE || 'none',
+      secure: process.env.COOKIE_SECURE
+        ? String(process.env.COOKIE_SECURE).toLowerCase() === 'true'
+        : (process.env.NODE_ENV === 'production'),
+      // SESSION_EXPIRED can be either milliseconds (number) or seconds (number <= 8640000), or an ISO-ish duration like "6h".
+      maxAge: (() => {
+        const raw = process.env.SESSION_EXPIRED;
+        if (!raw) return 1000 * 60 * 60 * 6;
+        const s = String(raw).trim().toLowerCase();
+        if (/^\d+$/.test(s)) {
+          const n = Number(s);
+          // heuristic: treat small values as seconds
+          return n <= 8640000 ? n * 1000 : n;
+        }
+        const m = s.match(/^(\d+(?:\.\d+)?)(ms|s|m|h|d)$/);
+        if (m) {
+          const val = Number(m[1]);
+          const unit = m[2];
+          const mult = unit === 'ms' ? 1 : unit === 's' ? 1000 : unit === 'm' ? 60 * 1000 : unit === 'h' ? 60 * 60 * 1000 : 24 * 60 * 60 * 1000;
+          return val * mult;
+        }
+        return 1000 * 60 * 60 * 6;
+      })(),
+
     },
   })
 );

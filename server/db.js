@@ -26,11 +26,12 @@ function firstNonEmpty(...vals) {
 const supabaseConnectionString = firstNonEmpty(
   process.env.SUPABASE_DB_CONNECTION_STRING,
   process.env.SUPABASE_CONNECTION_STRING,
-  process.env.SUPABASE_DB_URL,
-  process.env.SUPABASE_URL // NOTE: this is NOT a Postgres connection string; only used as fallback guard
+  process.env.SUPABASE_DB_URL
 );
 
+// Never use NEXT_PUBLIC_SUPABASE_URL / anon key for pg connectivity.
 const databaseUrl = firstNonEmpty(process.env.DATABASE_URL, supabaseConnectionString);
+
 
 let pool;
 

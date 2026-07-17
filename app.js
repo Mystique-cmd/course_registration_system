@@ -1,6 +1,7 @@
 const $ = (sel) => document.querySelector(sel);
 
-const API_BASE = (window.__API_BASE__ || '').trim() || 'http://localhost:3000';
+const API_BASE = (window.__API_BASE__ || '').trim() || (window.__API_BASE_FALLBACK__ || 'http://localhost:3000');
+
 
 function apiFetch(path, options = {}) {
   return fetch(`${API_BASE}${path}`, {

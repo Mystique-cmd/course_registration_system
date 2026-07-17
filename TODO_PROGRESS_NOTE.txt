@@ -1,0 +1,8 @@
+Postgres README update progress
+
+- [ ] Replace MySQL setup instructions in README.md with PostgreSQL setup.
+- [ ] Update environment variables section to match server/db.js and server/index.js.
+- [ ] Remove incorrect `db/schema.sql` MySQL import guidance; add note about missing Postgres schema/migration.
+- [ ] Keep/verify frontend static run instructions and cookies/session troubleshooting.
+- [ ] Final pass: ensure README has consistent ports/endpoints and no MySQL-only commands remain.
+

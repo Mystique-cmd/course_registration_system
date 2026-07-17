@@ -12,9 +12,10 @@ It provides:
 >
 > - Frontend: static HTML/CSS/JS pages
 > - Backend: Node/Express API with cookie-based sessions
-> - MySQL: source of truth for users, catalog, registrations, waitlist, and admin analytics
+> - **PostgreSQL**: source of truth for users, catalog, registrations, waitlist, and admin analytics
 >
-> A MySQL schema is included under `db/schema.sql` (used by the backend).
+> `server/` contains the PostgreSQL-backed API implementation.
+
 
 
 ---
@@ -35,8 +36,10 @@ UI pages are static and can be opened directly in a browser once the backend is 
 ## How data works
 
 ### Backend-first mode (recommended / current)
-- Authentication, student profiles, catalog, registrations, waitlist, and notifications are stored in **MySQL**.
+- Authentication, student profiles, catalog, registrations, waitlist, and notifications are stored in **PostgreSQL**.
 - The backend uses cookie-based sessions (`express-session`).
+
+
 
 
 ---
@@ -46,7 +49,9 @@ UI pages are static and can be opened directly in a browser once the backend is 
 This project uses:
 - **Frontend:** static pages served by a simple web server
 - **Backend:** Node/Express API + cookie-based sessions
-- **Database:** MySQL (schema in `db/schema.sql`)
+- **Database:** PostgreSQL (required tables are implemented/expected by the backend)
+
+
 
 ---
 
@@ -54,26 +59,32 @@ This project uses:
 
 ### 1) Prerequisites
 - Node.js (v16+ recommended)
-- MySQL server
+- PostgreSQL server
 
-### 2) Create the MySQL database
-Create a database with the same name you’ll use for `DB_NAME`.
+
+### 2) Create the PostgreSQL database
+Create a PostgreSQL database with the same name you’ll use for `DB_NAME`.
 
 > Backend default: `DB_NAME=courseregistration`
 
-### 3) Import the database schema
-From the project root:
-```bash
-mysql -u root -p courseregistration < "./db/schema.sql"
-```
+### 3) Create the database schema (PostgreSQL)
+The included `db/schema.sql` is **MySQL** and cannot be imported into PostgreSQL.
 
-### 4) Configure backend environment variables
+Create a PostgreSQL-compatible schema for the backend (tables like `students`, `courses`, `registrations`, `waitlist_entries`, `notifications`, plus `drop_logs` and `student_billing`).
+
+A placeholder for Postgres migration notes exists at:
+- `server/README_POSTGRES_MIGRATION.md`
+
+
+### 4) Configure backend environment variables (Postgres)
 The backend reads these environment variables:
+
+- `DATABASE_URL` (optional): a single Postgres connection string
 - `DB_HOST` (default `localhost`)
 - `DB_USER` (default `root`)
 - `DB_PASSWORD`
 - `DB_NAME` (default `courseregistration`)
-- `DB_PORT` (default `3306`)
+- `DB_PORT` (default `5432`)
 - `SESSION_SECRET` (recommended)
 - `PORT` (default `3000`)
 
@@ -83,10 +94,11 @@ export DB_HOST=localhost
 export DB_USER=root
 export DB_PASSWORD=YOUR_PASSWORD
 export DB_NAME=courseregistration
-export DB_PORT=3306
+export DB_PORT=5432
 export SESSION_SECRET="change-me"
 export PORT=3000
 ```
+
 
 > The backend also supports a local `.env` file (it is loaded by `server/index.js`).
 
@@ -129,9 +141,10 @@ Open the UI at:
 - Ensure your browser accepts cookies from `localhost:3000`.
 - Since the frontend is served from a different port (e.g. `8000`), make sure the browser allows third-party cookie behavior for `localhost`.
 
-### MySQL errors
+### Database errors (Postgres)
 - Verify `DB_NAME` matches the database you created.
 - Verify `DB_PASSWORD` and `DB_PORT`.
+
 
 
 ### 8) Cookies / sessions note (important)
@@ -150,22 +163,20 @@ Open the UI at:
 - `admin_dashboard.html` → admin analytics
 
 
----
-
-
 
 ---
 
-## MySQL schema (used by the backend)
 
-The backend uses `db/schema.sql`.
 
-### What it contains
-- `students`
-- `courses` (seeded with the sample catalog)
-- `registrations` (student ↔ course)
-- `waitlist_entries`
-- `notifications`
+---
+
+## Schema notes
+- The backend expects a **PostgreSQL** schema.
+- The repository’s `db/schema.sql` is **MySQL** and includes MySQL-specific syntax.
+
+If you want a working Postgres setup, add/create a Postgres schema/migration (see `server/README_POSTGRES_MIGRATION.md`).
+
+
 
 
 ---
@@ -197,13 +208,15 @@ The backend uses `db/schema.sql`.
 - `app.js` – all page-aware logic (login, dashboard, catalog, admin analytics)
 - `styles.css` – all styling including dashboard, catalog, schedule grid, and admin charts
 - `index.html`, `login.html`, `dashboard.html`, `catalog.html`, `admin_dashboard.html` – static pages
-- `db/schema.sql` – MySQL schema for a future backend
+- `db/schema.sql` – MySQL schema (not importable into PostgreSQL as-is)
+
 
 ---
 
 ## Notes / Limitations
 
-- In **backend-first mode**, data is stored in **MySQL** and auth uses **cookie sessions**.
+- In **backend-first mode**, data is stored in **PostgreSQL** and auth uses **cookie sessions**.
+
 - “Admin auth” is still a demo gate (backend treats `studentId === 'admin'` as admin-mode for analytics).
 - Some UI/data (e.g., schedule rendering and certain catalog defaults) may still be seeded on the frontend for compatibility.
 

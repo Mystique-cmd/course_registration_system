@@ -68,12 +68,46 @@ Create a PostgreSQL database with the same name you’ll use for `DB_NAME`.
 > Backend default: `DB_NAME=courseregistration`
 
 ### 3) Create the database schema (PostgreSQL)
-The included `db/schema.sql` is **MySQL** and cannot be imported into PostgreSQL.
+This app’s backend expects a **PostgreSQL** schema.
 
-Create a PostgreSQL-compatible schema for the backend (tables like `students`, `courses`, `registrations`, `waitlist_entries`, `notifications`, plus `drop_logs` and `student_billing`).
+#### Important: `db/schema.sql` is NOT PostgreSQL
+- The repository’s `db/schema.sql` file is written in **MySQL** syntax.
+- Because of that, you **cannot** import it directly into PostgreSQL.
 
-A placeholder for Postgres migration notes exists at:
+#### What PostgreSQL tables you must create
+Create (at minimum) tables that the backend queries by name in `server/index.js`:
+- `students`
+- `courses`
+- `registrations`
+- `waitlist_entries`
+- `notifications`
+- `drop_logs`
+- `student_billing`
+
+#### Where to put the Postgres SQL/migrations
+The repo includes a placeholder for Postgres migration instructions:
 - `server/README_POSTGRES_MIGRATION.md`
+
+Update that file with your actual PostgreSQL migration steps / SQL, for example:
+- `CREATE TABLE ...` statements
+- constraints (foreign keys / unique keys)
+- `ON CONFLICT` targets used by the backend (notably `registrations` upsert behavior)
+
+#### How to confirm the schema step worked
+After creating the schema and tables:
+1. Connect to your Postgres database with `psql`.
+2. Run table existence checks, e.g.:
+   ```sql
+   \dt
+   ```
+3. Verify each required table exists.
+4. Then start the backend (next step) and confirm it no longer fails at startup due to missing relations.
+
+#### Common mistakes to avoid
+- Creating the tables in the wrong database/schema name (your `DB_NAME` must match).
+- Using MySQL-only data types / syntax in PostgreSQL.
+- Forgetting primary/unique keys needed for upserts (the backend uses `ON CONFLICT (student_id_fk, course_id_fk)` in `registrations`).
+
 
 
 ### 4) Configure backend environment variables (Postgres)

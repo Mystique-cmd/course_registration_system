@@ -50,6 +50,8 @@ const cors = require('cors');
 const cookieParser = require('cookie-parser');
 
 const { pool } = require('./db');
+const { withTransaction } = require('./db_tx');
+
 const { hashPassword, verifyPassword } = require('./auth');
 
 // Routes are inlined for simplicity; can be split later.
@@ -145,65 +147,60 @@ app.post('/api/auth/register', async (req, res) => {
     const studentId = email.split('@')[0];
     const passwordHash = await hashPassword(password);
 
-    // Start transaction: create student if not exists, then insert registration.
-    const conn = await pool.getConnection();
-    try {
-      await conn.beginTransaction();
+    // Create student if not exists, then insert registration.
+    // (wrapped in a single Postgres transaction)
+    let studentPkId;
+    let course;
 
+    await withTransaction(pool, async (client) => {
       // ensure student exists
-      const [students] = await conn.execute(
-        'SELECT id FROM students WHERE student_id = ? LIMIT 1',
+      const studentsRes = await client.query(
+        'SELECT id FROM students WHERE student_id = $1 LIMIT 1',
         [studentId]
       );
+      const students = studentsRes.rows;
 
-      let studentPkId;
       if (!students.length) {
-        const [ins] = await conn.execute(
-          'INSERT INTO students (student_id, password_hash, student_name, email) VALUES (?, ?, ?, ?)',
+        const insRes = await client.query(
+          'INSERT INTO students (student_id, password_hash, student_name, email) VALUES ($1, $2, $3, $4) RETURNING id',
           [studentId, passwordHash, studentName, email]
         );
-        studentPkId = ins.insertId;
+        studentPkId = insRes.rows[0].id;
       } else {
-        // if student exists, update name/email and keep existing password hash if you want.
-        // Here we update name/email but keep password_hash as-is (simpler, avoids locking user out).
-        await conn.execute(
-          'UPDATE students SET student_name = ?, email = ? WHERE student_id = ?',
+        await client.query(
+          'UPDATE students SET student_name = $1, email = $2 WHERE student_id = $3',
           [studentName, email, studentId]
         );
-        const [row] = await conn.execute(
-          'SELECT id FROM students WHERE student_id = ? LIMIT 1',
+        const rowRes = await client.query(
+          'SELECT id FROM students WHERE student_id = $1 LIMIT 1',
           [studentId]
         );
-        studentPkId = row[0].id;
+        studentPkId = rowRes.rows[0].id;
       }
 
-      // Map course name (title) to a course_code. Schema uses course.title as 'title'.
-      // In frontend we pass courseName like "Computer Science" etc; we need to match by title.
-      const [courses] = await conn.execute(
-        'SELECT id, course_code, title, test_date_offset_days FROM courses WHERE title = ? LIMIT 1',
+      // Map course title to course row
+      const coursesRes = await client.query(
+        'SELECT id FROM courses WHERE title = $1 LIMIT 1',
         [courseName]
       );
-
-      if (!courses.length) {
-        await conn.rollback();
+      if (!coursesRes.rows.length) {
         return res.status(400).json({ error: `Course not found in DB: ${courseName}` });
       }
-      const course = courses[0];
+      course = coursesRes.rows[0];
 
-      // insert registration
-      await conn.execute(
-        'INSERT INTO registrations (student_id_fk, course_id_fk, kcse_grade) VALUES (?, ?, ?) '
-          + 'ON DUPLICATE KEY UPDATE kcse_grade = VALUES(kcse_grade)',
+      // insert registration (Postgres upsert)
+      await client.query(
+        `INSERT INTO registrations (student_id_fk, course_id_fk, kcse_grade)
+         VALUES ($1, $2, $3)
+         ON CONFLICT (student_id_fk, course_id_fk)
+         DO UPDATE SET kcse_grade = EXCLUDED.kcse_grade`,
         [studentPkId, course.id, kcse]
       );
 
-      await conn.commit();
-
       req.session.studentId = studentId;
       return res.json({ ok: true, studentId });
-    } finally {
-      conn.release();
-    }
+    });
+
   } catch (e) {
     console.error(e);
     return res.status(500).json({ error: 'Server error' });
@@ -476,6 +473,7 @@ app.post('/api/registrations/add', requireLogin, async (req, res) => {
         return res.status(400).json({ error: 'Eligibility check failed: You have reached the maximum registration limit of 15 credits (5 courses).' });
       }
 
+
       // 2. Get course details
       const [courseRows] = await conn.execute(
         'SELECT id, enrollment_status, seats_filled, seats_total, waitlist_count FROM courses WHERE course_code = ? LIMIT 1',
@@ -515,17 +513,20 @@ app.post('/api/registrations/add', requireLogin, async (req, res) => {
           [studentPkId, course.id, 'B'] // Default KCSE grade for new catalog registrations
         );
         await conn.execute(
-          'UPDATE courses SET seats_filled = seats_filled + 1 WHERE id = ?',
+          'UPDATE courses SET seats_filled = seats_filled + 1 WHERE id = $1',
           [course.id]
         );
+
         
         // Update enrollment status if now full
         if (course.seats_filled + 1 >= course.seats_total) {
           await conn.execute(
-            'UPDATE courses SET enrollment_status = "Waitlist" WHERE id = ?',
+            'UPDATE courses SET enrollment_status = "Waitlist" WHERE id = $1',
             [course.id]
           );
+
         }
+
       } else {
         // Waitlist: insert into waitlist_entries, increment waitlist_count
         const position = course.waitlist_count + 1;
@@ -534,9 +535,10 @@ app.post('/api/registrations/add', requireLogin, async (req, res) => {
           [studentPkId, course.id, position, 0.5]
         );
         await conn.execute(
-          'UPDATE courses SET waitlist_count = waitlist_count + 1 WHERE id = ?',
+          'UPDATE courses SET waitlist_count = waitlist_count + 1 WHERE id = $1',
           [course.id]
         );
+
       }
 
       await conn.commit();
@@ -711,9 +713,10 @@ app.post('/api/registrations/drop', requireLogin, async (req, res) => {
 
       // Decrement seats_filled and adjust enrollment status
       await conn.execute(
-        'UPDATE courses SET seats_filled = GREATEST(0, seats_filled - 1), enrollment_status = "Open" WHERE id = ?',
+        'UPDATE courses SET seats_filled = GREATEST(0, seats_filled - 1), enrollment_status = "Open" WHERE id = $1',
         [courseId]
       );
+
 
       // Save notification to database: student successfully dropped course
       const notificationMsg = `You have successfully dropped "${courseName}".`;
@@ -776,9 +779,13 @@ app.post('/api/registrations/drop', requireLogin, async (req, res) => {
           
           // Move waitlisted student to registered
           await conn.execute(
-            'INSERT INTO registrations (student_id_fk, course_id_fk, kcse_grade) VALUES (?, ?, ?)',
+            `INSERT INTO registrations (student_id_fk, course_id_fk, kcse_grade)
+             VALUES ($1, $2, $3)
+             ON CONFLICT (student_id_fk, course_id_fk)
+             DO UPDATE SET kcse_grade = EXCLUDED.kcse_grade`,
             [waitlistedStudentId, courseId, 'A']
           );
+
           
           // Remove from waitlist
           await conn.execute(
@@ -788,9 +795,10 @@ app.post('/api/registrations/drop', requireLogin, async (req, res) => {
           
           // Update course: increment seats_filled and decrement waitlist_count
           await conn.execute(
-            'UPDATE courses SET seats_filled = seats_filled + 1, waitlist_count = GREATEST(0, waitlist_count - 1) WHERE id = ?',
+            'UPDATE courses SET seats_filled = seats_filled + 1, waitlist_count = GREATEST(0, waitlist_count - 1) WHERE id = $1',
             [courseId]
           );
+
           
           // Notify the promoted student
           const promotionMsg = `Great news! A seat opened in "${courseName}". You have been promoted from the waitlist and are now registered.`;
@@ -809,6 +817,7 @@ app.post('/api/registrations/drop', requireLogin, async (req, res) => {
 
       await conn.commit();
       return res.json({ ok: true, dropped: regId, courseName });
+
     } catch (err) {
       await conn.rollback();
       throw err;

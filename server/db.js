@@ -1,4 +1,4 @@
-const mysql = require('mysql2/promise');
+const { Pool } = require('pg');
 
 function env(name, fallback) {
   const v = process.env[name];
@@ -6,15 +6,25 @@ function env(name, fallback) {
   return v;
 }
 
-const pool = mysql.createPool({
-  host: env('DB_HOST', 'localhost'),
-  user: env('DB_USER', 'root'),
-  password: env('DB_PASSWORD', ''),
-  database: env('DB_NAME', 'courseregistration'),
-  port: Number(env('DB_PORT', 3306)),
-  connectionLimit: 10,
-  decimalNumbers: true,
-});
+// Optional: if DATABASE_URL is provided, pg Pool can use it directly.
+// We still support discrete env vars to match the previous README.
+const databaseUrl = process.env.DATABASE_URL;
+
+const pool = new Pool(
+  databaseUrl
+    ? {
+        connectionString: databaseUrl,
+      }
+    : {
+        host: env('DB_HOST', 'localhost'),
+        user: env('DB_USER', 'root'),
+        password: env('DB_PASSWORD', ''),
+        database: env('DB_NAME', 'courseregistration'),
+        port: Number(env('DB_PORT', 5432)),
+        max: 10,
+        idleTimeoutMillis: 30000,
+      }
+);
 
 module.exports = { pool };
 

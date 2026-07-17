@@ -14,7 +14,7 @@ function apiFetch(path, options = {}) {
   }).then(async (res) => {
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      const msg = data?.error || `Request failed (${res.status})`;
+      const msg = data?.detail ? `${data?.error || 'Request failed'}: ${data.detail}` : (data?.error || `Request failed (${res.status})`);
       throw new Error(msg);
     }
     return data;

@@ -200,10 +200,10 @@ app.post('/api/auth/login', async (req, res) => {
 
     if (findErr) return res.status(400).json({ error: findErr.message });
     const student = (studentRows || [])[0];
-    if (!student) return res.status(401).json({ error: 'Invalid Student ID or Password.' });
+    if (!student) return res.status(401).json({ error: 'Invalid Student Email or Password.' });
 
     const ok = verifyPassword(String(loginPassword), student.password_hash);
-    if (!ok) return res.status(401).json({ error: 'Invalid Student ID or Password.' });
+    if (!ok) return res.status(401).json({ error: 'Invalid Student Email or Password.' });
 
     req.session.studentDbId = student.id;
     req.session.studentId = student.student_id;

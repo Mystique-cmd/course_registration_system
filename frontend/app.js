@@ -1440,7 +1440,7 @@ function bindCatalogControls() {
       } catch (err) {
         if (submitBtn) submitBtn.disabled = false;
         if (loginMessageEl) {
-          loginMessageEl.textContent = String(err?.message || 'Invalid Student ID or Password.');
+          loginMessageEl.textContent = String(err?.message || 'Invalid Student Email or Password.');
           loginMessageEl.className = 'form-message error-msg';
           loginMessageEl.hidden = false;
         }

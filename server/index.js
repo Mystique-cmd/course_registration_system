@@ -37,9 +37,25 @@ app.use((req, res, next) => {
     }
   };
 
+  let token = null;
+
+  // 1. Check Authorization header
   const authHeader = req.headers['authorization'];
   if (authHeader && authHeader.startsWith('Bearer ')) {
-    const token = authHeader.substring(7);
+    token = authHeader.substring(7);
+  }
+
+  // 2. Check custom X-Auth-Token header
+  if (!token && req.headers['x-auth-token']) {
+    token = req.headers['x-auth-token'];
+  }
+
+  // 3. Check query parameter
+  if (!token && req.query && req.query.token) {
+    token = req.query.token;
+  }
+
+  if (token) {
     try {
       const decoded = JSON.parse(Buffer.from(token, 'base64').toString('utf-8'));
       if (decoded && decoded.studentDbId && decoded.studentId) {

@@ -11,6 +11,7 @@ function apiFetch(path, options = {}) {
   const token = localStorage.getItem('auth_token');
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
+    headers['X-Auth-Token'] = token;
   }
 
   return fetch(`${API_BASE}${path}`, {

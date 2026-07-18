@@ -1,6 +1,5 @@
 const path = require('path');
 const express = require('express');
-const session = require('express-session');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 require('dotenv').config();
@@ -30,21 +29,29 @@ app.use(
   })
 );
 
-app.use(
-  session({
-    secret: process.env.SESSION_SECRET || 'dev-session-secret',
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      httpOnly: true,
-      // Session cookie must be reliably sent on navigation.
-      sameSite: 'lax',
-      secure: process.env.NODE_ENV === 'production' || process.env.SESSION_SECURE === 'true',
-      path: '/',
-      maxAge: 1000 * 60 * 60 * 8,
-    },
-  })
-);
+// Token-based session mock middleware
+app.use((req, res, next) => {
+  req.session = {
+    destroy: (callback) => {
+      if (typeof callback === 'function') callback();
+    }
+  };
+
+  const authHeader = req.headers['authorization'];
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.substring(7);
+    try {
+      const decoded = JSON.parse(Buffer.from(token, 'base64').toString('utf-8'));
+      if (decoded && decoded.studentDbId && decoded.studentId) {
+        req.session.studentDbId = decoded.studentDbId;
+        req.session.studentId = decoded.studentId;
+      }
+    } catch (e) {
+      // Ignore token decoding failure
+    }
+  }
+  next();
+});
 
 function requireSession(req, res, next) {
   if (!req.session || !req.session.studentDbId) {
@@ -163,7 +170,11 @@ app.post('/api/auth/register', async (req, res) => {
     req.session.studentDbId = studentRow.id;
     req.session.studentId = studentRow.student_id;
 
-    res.json({ ok: true });
+    const token = Buffer.from(
+      JSON.stringify({ studentDbId: studentRow.id, studentId: studentRow.student_id })
+    ).toString('base64');
+
+    res.json({ ok: true, token });
   } catch (e) {
     res.status(500).json({ error: e.message || 'Register failed' });
   }
@@ -197,7 +208,11 @@ app.post('/api/auth/login', async (req, res) => {
     req.session.studentDbId = student.id;
     req.session.studentId = student.student_id;
 
-    res.json({ ok: true });
+    const token = Buffer.from(
+      JSON.stringify({ studentDbId: student.id, studentId: student.student_id })
+    ).toString('base64');
+
+    res.json({ ok: true, token });
   } catch (e) {
     res.status(500).json({ error: e.message || 'Login failed' });
   }

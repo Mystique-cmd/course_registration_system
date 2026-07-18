@@ -4,16 +4,25 @@ const API_BASE = (window.__API_BASE__ || '').trim() || (window.__API_BASE_FALLBA
 
 
 function apiFetch(path, options = {}) {
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(options.headers || {}),
+  };
+  const token = localStorage.getItem('auth_token');
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
   return fetch(`${API_BASE}${path}`, {
     ...options,
     credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(options.headers || {}),
-    },
+    headers,
   }).then(async (res) => {
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
+      if (res.status === 401) {
+        localStorage.removeItem('auth_token');
+      }
       const err = new Error(data?.error || `Request failed (${res.status})`);
       err.status = res.status;
       err.data = data;
@@ -89,8 +98,8 @@ function bindStudentSidebarNavigation() {
       try {
         await apiFetch('/api/auth/logout', { method: 'POST' });
       } catch {}
+      localStorage.removeItem('auth_token');
       window.location.assign('login.html');
-
   });
 }
 
@@ -1413,10 +1422,13 @@ function bindCatalogControls() {
       if (submitBtn) submitBtn.disabled = true;
 
       try {
-        await apiFetch('/api/auth/login', {
+        const data = await apiFetch('/api/auth/login', {
           method: 'POST',
           body: JSON.stringify({ email, password }),
         });
+        if (data.token) {
+          localStorage.setItem('auth_token', data.token);
+        }
         if (loginMessageEl) {
           loginMessageEl.textContent = 'Login successful! Redirecting to dashboard...';
           loginMessageEl.className = 'form-message success-msg';
@@ -1426,6 +1438,7 @@ function bindCatalogControls() {
           window.location.assign('dashboard.html');
         }, 1500);
       } catch (err) {
+        if (submitBtn) submitBtn.disabled = false;
         if (loginMessageEl) {
           loginMessageEl.textContent = String(err?.message || 'Invalid Student ID or Password.');
           loginMessageEl.className = 'form-message error-msg';
@@ -1476,10 +1489,13 @@ function bindCatalogControls() {
       }
 
       try {
-        await apiFetch('/api/auth/register', {
+        const data = await apiFetch('/api/auth/register', {
           method: 'POST',
           body: JSON.stringify({ studentName, email, password, courseName, kcse }),
         });
+        if (data.token) {
+          localStorage.setItem('auth_token', data.token);
+        }
 
         if (registerMessageEl) {
           registerMessageEl.textContent = 'Registration successful! Redirecting to dashboard...';
@@ -1539,6 +1555,7 @@ function bindCatalogControls() {
           try {
             await apiFetch('/api/auth/logout', { method: 'POST' });
           } catch {}
+          localStorage.removeItem('auth_token');
           window.location.assign('login.html');
         });
 
@@ -1891,6 +1908,7 @@ function bindCatalogControls() {
           try {
             await apiFetch('/api/auth/logout', { method: 'POST' });
           } catch {}
+          localStorage.removeItem('auth_token');
           window.location.assign('login.html');
         });
 

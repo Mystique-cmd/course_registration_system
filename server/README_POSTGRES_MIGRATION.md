@@ -1,2 +1,0 @@
-Planned PostgreSQL migration notes.
-

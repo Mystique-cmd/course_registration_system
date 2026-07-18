@@ -14,8 +14,10 @@ function apiFetch(path, options = {}) {
   }).then(async (res) => {
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      const msg = data?.detail ? `${data?.error || 'Request failed'}: ${data.detail}` : (data?.error || `Request failed (${res.status})`);
-      throw new Error(msg);
+      const err = new Error(data?.error || `Request failed (${res.status})`);
+      err.status = res.status;
+      err.data = data;
+      throw err;
     }
     return data;
   });
@@ -1406,6 +1408,9 @@ function bindCatalogControls() {
         }
         return;
       }
+
+      const submitBtn = e.target.querySelector('button[type="submit"]');
+      if (submitBtn) submitBtn.disabled = true;
 
       try {
         await apiFetch('/api/auth/login', {

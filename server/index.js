@@ -39,7 +39,7 @@ app.use(
       httpOnly: true,
       // Session cookie must be reliably sent on navigation.
       sameSite: 'lax',
-      secure: false, // keep false for local http
+      secure: process.env.NODE_ENV === 'production' || process.env.SESSION_SECURE === 'true',
       path: '/',
       maxAge: 1000 * 60 * 60 * 8,
     },
@@ -204,6 +204,9 @@ app.post('/api/auth/login', async (req, res) => {
 });
 
 app.post('/api/auth/logout', async (req, res) => {
+  // Ensure we clear session cookie consistently
+  res.clearCookie?.('connect.sid');
+
   try {
     req.session.destroy(() => {
       res.json({ ok: true });
@@ -216,6 +219,11 @@ app.post('/api/auth/logout', async (req, res) => {
 // =====================
 // Current student
 // =====================
+app.get('/api/auth/status', (req, res) => {
+  const authenticated = !!req.session?.studentDbId;
+  res.json({ authenticated });
+});
+
 app.get('/api/students/me', requireSession, async (req, res) => {
   try {
     const studentDbId = req.session.studentDbId;

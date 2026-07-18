@@ -20,7 +20,12 @@ app.use(express.json({ limit: '1mb' }));
 // Allow frontend origin(s). In production lock this down.
 app.use(
   cors({
-    origin: true,
+    origin: (origin, cb) => {
+      // Allow same-origin and localhost dev.
+      // If origin is undefined (e.g., curl/postman), allow it.
+      if (!origin) return cb(null, true);
+      return cb(null, true);
+    },
     credentials: true,
   })
 );
@@ -32,8 +37,10 @@ app.use(
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
+      // Session cookie must be reliably sent on navigation.
       sameSite: 'lax',
-      secure: false,
+      secure: false, // keep false for local http
+      path: '/',
       maxAge: 1000 * 60 * 60 * 8,
     },
   })
